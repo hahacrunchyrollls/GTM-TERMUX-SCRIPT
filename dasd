@@ -4,7 +4,7 @@
 ## Run this script excluded to your VPN tunnel (split vpn tunneling mode)
 
 ## Your DNSTT Nameserver & your Domain `A` Record
-NS='phc.jericoo.site'
+NS= 
 
 ## Add your DNS here
 declare -a HOSTS=('124.6.181.31' '124.6.181.171' '124.6.181.30' '124.6.181.160' '124.6.181.88' '124.6.181.26' '124.6.181.27' '124.6.181.25' '124.6.181.28')
