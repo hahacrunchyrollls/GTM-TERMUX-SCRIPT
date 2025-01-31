@@ -67,11 +67,8 @@ while true; do
 done
 
 # Prompt user for custom NS
-read -p "Would you like to add a custom NS? (yes/no): " add_custom_ns
-if [[ "${add_custom_ns}" =~ ^(yes|y)$ ]]; then
- read -p "Please enter the custom NS: " custom_ns
- NS="${NS} ${custom_ns}"
-fi
+read -p "Please enter a custom NS: " custom_ns
+NS="${NS} ${custom_ns}"
 
 [[ "${LOOP_DELAY}" -eq 1 ]] && let "LOOP_DELAY++";
 while true; do
