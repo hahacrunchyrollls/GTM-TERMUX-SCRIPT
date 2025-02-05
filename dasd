@@ -64,8 +64,14 @@ while true; do
 done
 
 # Prompt user for custom NS
-read -p "Please enter a custom NS: " custom_ns
-NS="${NS} ${custom_ns}"
+while true; do
+ read -p "Please enter a custom NS (or type 'done' to finish): " custom_ns
+ if [[ "${custom_ns}" == "done" ]]; then
+   break
+ else
+   NS="${NS} ${custom_ns}"
+ fi
+done
 
 [[ "${LOOP_DELAY}" -eq 1 ]] && let "LOOP_DELAY++";
 while true; do
