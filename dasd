@@ -41,7 +41,7 @@ check(){
  for ((i=0; i<"${#HOSTS[*]}"; i++)); do
   for R in "${NS[@]}"; do
    T="${HOSTS[$i]}"
-   [[ -z $(timeout -k 3 3 ${_DIG} @${T} ${R}) ]] && M=31 || M=32;
+   [[ -z $(timeout -k 1 1 ${_DIG} @${T} ${R}) ]] && M=31 || M=32;
    echo -e "\e[1;${M}m\$ NS:${R} DNS:${T}\e[0m"
    unset T R M
   done
@@ -55,17 +55,9 @@ echo -e "DNS List: [\e[1;34m${HOSTS[*]}\e[0m]"
 echo "NS List: [\e[1;34m${NS[*]}\e[0m]"
 echo "CTRL + C to close script"
 
-# Prompt user for loop delay
-while true; do
- read -p "Please enter loop delay (0-5 seconds): " LOOP_DELAY
- if [[ ${LOOP_DELAY} =~ ^[0-5]$ ]]; then
-   break
- else
-   echo "Invalid input. Please enter a number between 0 and 5."
- fi
-done
+# Prompt user for loop delay, set to 0.01 seconds for faster response
+LOOP_DELAY=0.01
 
-[[ "${LOOP_DELAY}" -eq 1 ]] && let "LOOP_DELAY++";
 while true; do
  check
  echo -e "\e[1;33m├──────────────────────────────────────┤\e[0m"
