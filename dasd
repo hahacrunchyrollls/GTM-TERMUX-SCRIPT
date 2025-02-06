@@ -14,7 +14,11 @@ DIG_EXEC="DEFAULT"
 CUSTOM_DIG=/data/data/com.termux/files/home/go/bin/fastdig
 
 ######################################
-VER=0.2
+######################################
+######################################
+######################################
+######################################
+VER=0.1
 case "${DIG_EXEC}" in
  DEFAULT|D)
  _DIG="$(command -v dig)"
@@ -33,17 +37,13 @@ endscript() {
  exit 1
 }
 trap endscript 2 15
-
 check(){
- count=1
- for T in "${HOSTS[@]}"; do
+ for ((i=0; i<"${#HOSTS[*]}"; i++)); do
   for R in "${NS[@]}"; do
-   if timeout -k 0.1 0.1 ${_DIG} @${T} ${R} > /dev/null 2>&1; then
-    echo -e "\e[1;32m$count NS:${R} DNS:${T}\e[0m"
-   else
-    echo -e "\e[1;31m$count NS:${R} DNS:${T}\e[0m"
-   fi
-   count=$((count + 1))
+   T="${HOSTS[$i]}"
+   [[ -z $(timeout -k 3 3 ${_DIG} @${T} ${R}) ]] && M=31 || M=32;
+   echo -e "\e[1;${M}m\$ NS:${R} DNS:${T}\e[0m"
+   unset T R M
   done
  done
 }
