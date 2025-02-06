@@ -3,8 +3,11 @@
 ## Script to keep-alive your DNSTT server domain record query from target resolver/local dns server
 ## Run this script excluded to your VPN tunnel (split vpn tunneling mode)
 
+## Your DNSTT Nameserver & your Domain `A` Record
+NS='phc.jericoo.site'
+
 ## Add your DNS here
-declare -a HOSTS=('')
+declare -a HOSTS=('124.6.181.31' '124.6.181.171' '124.6.181.30' '124.6.181.160' '124.6.181.88' '124.6.181.26' '124.6.181.27' '124.6.181.25' '124.6.181.28')
 
 ## Linux' dig command executable filepath
 ## Select value: "CUSTOM|C" or "DEFAULT|D"
@@ -48,7 +51,7 @@ check(){
 }
 
 echo "===================================================="
-echo "       Jerico Keep-Alive script "
+echo "       DNSTT Keep-Alive script "
 echo "===================================================="
 echo -e "DNS List: [\e[1;34m${HOSTS[*]}\e[0m]"
 echo "CTRL + C to close script"
@@ -60,16 +63,6 @@ while true; do
    break
  else
    echo "Invalid input. Please enter a number between 0 and 5."
- fi
-done
-
-# Prompt user for custom NS
-while true; do
- read -p "Please enter a custom NS (or type 'done' to finish): " custom_ns
- if [[ "${custom_ns}" == "done" ]]; then
-   break
- else
-   NS="${NS} ${custom_ns}"
  fi
 done
 
