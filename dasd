@@ -48,9 +48,9 @@ check(){
  done
 }
 
-echo "===================================================="
-echo "       DNSTT Keep-Alive script "
-echo "===================================================="
+echo "==========================================="
+echo "     Jerico GTM Keep-Alive script "
+echo "==========================================="
 echo -e "DNS List: [\e[1;34m${HOSTS[*]}\e[0m]"
 echo "NS List: [\e[1;34m${NS[*]}\e[0m]"
 echo "CTRL + C to close script"
@@ -68,7 +68,7 @@ done
 [[ "${LOOP_DELAY}" -eq 1 ]] && let "LOOP_DELAY++";
 while true; do
  check
- echo -e "\e[1;33m├───────────────TFN─VPN────────────────┤\e[0m"
+ echo -e "\e[1;33m├──────────────────────────────────────┤\e[0m"
  sleep ${LOOP_DELAY}
 done
 exit 0
