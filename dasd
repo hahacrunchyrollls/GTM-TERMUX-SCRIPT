@@ -71,7 +71,7 @@ done
 while true; do
  check
  echo -e "\e[1;33m├──────────────────────────────────────┤\e[0m"
- echo -e ${DIG_COUNT}"
+ echo -e Dig Count: ${DIG_COUNT}"
  sleep ${LOOP_DELAY}
 done
 exit 0
