@@ -64,7 +64,9 @@ done
 while true; do
  check
  echo -e "\e[1;33m├──────────────────────────────────────┤\e[0m"
- if [[ "${LOOP_DELAY}" -gt 0 ]]; then
+ if [[ "${LOOP_DELAY}" -eq 0 ]]; then
+   usleep 100
+ else
    sleep ${LOOP_DELAY}
  fi
 done
