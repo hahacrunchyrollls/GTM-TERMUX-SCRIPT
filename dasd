@@ -77,7 +77,7 @@ while true; do
  echo -e "Dig Count: ${DIG_COUNT}"
  # Adjust sleep time based on LOOP_DELAY
  if [[ "${LOOP_DELAY}" -eq 0 ]]; then
-   sleep 0.001
+   sleep 0.00001
  else
    sleep ${LOOP_DELAY}
  fi
