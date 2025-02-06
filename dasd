@@ -3,11 +3,9 @@
 ## Script to keep-alive your DNSTT server domain record query from target resolver/local dns server
 ## Run this script excluded to your VPN tunnel (split vpn tunneling mode)
 
-## Your DNSTT Nameserver & your Domain `A` Record
-NS='phc.jericoo.site'
-
-## Add your DNS here
-declare -a HOSTS=('124.6.181.31' '124.6.181.171' '124.6.181.30' '124.6.181.160' '124.6.181.88' '124.6.181.26' '124.6.181.27' '124.6.181.25' '124.6.181.28')
+## Prompt user for custom NS and DNS
+read -p "Enter custom NS separated by spaces: " -a NS
+read -p "Enter custom DNS separated by spaces: " -a HOSTS
 
 ## Linux' dig command executable filepath
 ## Select value: "CUSTOM|C" or "DEFAULT|D"
@@ -41,7 +39,7 @@ endscript() {
 trap endscript 2 15
 check(){
  for ((i=0; i<"${#HOSTS[*]}"; i++)); do
-  for R in "${NS}"; do
+  for R in "${NS[@]}"; do
    T="${HOSTS[$i]}"
    [[ -z $(timeout -k 3 3 ${_DIG} @${T} ${R}) ]] && M=31 || M=32;
    echo -e "\e[1;${M}m\$ NS:${R} DNS:${T}\e[0m"
@@ -54,6 +52,7 @@ echo "===================================================="
 echo "       DNSTT Keep-Alive script "
 echo "===================================================="
 echo -e "DNS List: [\e[1;34m${HOSTS[*]}\e[0m]"
+echo "NS List: [\e[1;34m${NS[*]}\e[0m]"
 echo "CTRL + C to close script"
 
 # Prompt user for loop delay
