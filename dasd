@@ -57,7 +57,7 @@ check(){
 }
 
 echo -e "DNS List: [\e[1;34m${HOSTS[*]}\e[0m]"
-echo "NS List: [\e[1;34m${NS[*]}\e[0m]"
+echo "NS List: ${NS[*]}"
 echo "CTRL + C to close script"
 
 # Prompt user for loop delay
