@@ -75,6 +75,11 @@ while true; do
  check
  echo -e "\e[1;33m├──────────────────────────────────────┤\e[0m"
  echo -e "Dig Count: ${DIG_COUNT}"
- sleep ${LOOP_DELAY}
+ # Adjust sleep time based on LOOP_DELAY
+ if [[ "${LOOP_DELAY}" -eq 0 ]]; then
+   sleep 0.001
+ else
+   sleep ${LOOP_DELAY}
+ fi
 done
 exit 0
