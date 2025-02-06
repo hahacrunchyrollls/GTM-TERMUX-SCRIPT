@@ -45,10 +45,13 @@ check(){
  for ((i=0; i<"${#HOSTS[*]}"; i++)); do
   for R in "${NS[@]}"; do
    T="${HOSTS[$i]}"
+   START_TIME=$(date +%s%N)
    [[ -z $(timeout -k 3 3 ${_DIG} @${T} ${R}) ]] && M=31 || M=32;
-   echo -e "\e[1;${M}m\$ NS:${R} DNS:${T}\e[0m"
+   END_TIME=$(date +%s%N)
+   PING_MS=$(( (END_TIME - START_TIME) / 1000000 ))
+   echo -e "\e[1;${M}m\$ NS:${R} DNS:${T} Ping:${PING_MS} ms\e[0m"
    DIG_COUNT=$((DIG_COUNT + 1))
-   unset T R M
+   unset T R M PING_MS START_TIME END_TIME
   done
  done
 }
