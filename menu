@@ -1,0 +1,206 @@
+#!/bin/bash
+# TFN VPN DNS Keep-Alive Script
+# Version 1.0
+# Enhanced with menu interface
+
+# Colors
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+PURPLE='\033[0;35m'
+CYAN='\033[0;36m'
+NC='\033[0m' # No Color
+
+# Global variables
+VER="1.0"
+DIG_COUNT=0
+NS=()
+HOSTS=()
+LOOP_DELAY=0
+CONFIG_FILE="$HOME/.tfn_vpn_config"
+
+# Function to clear screen and show banner
+show_banner() {
+    clear
+    echo -e "${BLUE}════════════════════════════════════════════${NC}"
+    echo -e "${CYAN}           TFN VPN Keep-Alive Tool          ${NC}"
+    echo -e "${CYAN}             Version: ${VER}                ${NC}"
+    echo -e "${BLUE}════════════════════════════════════════════${NC}"
+}
+
+# Function to save configuration
+save_config() {
+    echo "NS=${NS[*]}" > "$CONFIG_FILE"
+    echo "HOSTS=${HOSTS[*]}" >> "$CONFIG_FILE"
+    echo "LOOP_DELAY=$LOOP_DELAY" >> "$CONFIG_FILE"
+}
+
+# Function to load configuration
+load_config() {
+    if [ -f "$CONFIG_FILE" ]; then
+        source "$CONFIG_FILE"
+        IFS=' ' read -ra NS <<< "$NS"
+        IFS=' ' read -ra HOSTS <<< "$HOSTS"
+        return 0
+    fi
+    return 1
+}
+
+# Function to check dig command
+check_dig() {
+    if command -v dig >/dev/null 2>&1; then
+        _DIG="$(command -v dig)"
+        return 0
+    elif [ -f "/data/data/com.termux/files/home/go/bin/fastdig" ]; then
+        _DIG="/data/data/com.termux/files/home/go/bin/fastdig"
+        return 0
+    else
+        echo -e "${RED}Error: 'dig' command not found. Please install dnsutils or configure fastdig.${NC}"
+        return 1
+    fi
+}
+
+# Function to configure settings
+configure_settings() {
+    local temp_ns
+    local temp_hosts
+    
+    echo -e "\n${YELLOW}Current Configuration:${NC}"
+    echo -e "${CYAN}NS Servers:${NC} ${NS[*]:-None}"
+    echo -e "${CYAN}DNS Hosts:${NC} ${HOSTS[*]:-None}"
+    echo -e "${CYAN}Loop Delay:${NC} ${LOOP_DELAY} seconds\n"
+    
+    read -p "Enter custom NS separated by spaces: " temp_ns
+    read -p "Enter custom DNS separated by spaces: " temp_hosts
+    
+    while true; do
+        read -p "Enter loop delay (0-5 seconds): " LOOP_DELAY
+        if [[ ${LOOP_DELAY} =~ ^[0-5]$ ]]; then
+            break
+        else
+            echo -e "${RED}Invalid input. Please enter a number between 0 and 5.${NC}"
+        fi
+    done
+
+    if [ ! -z "$temp_ns" ]; then
+        IFS=' ' read -ra NS <<< "$temp_ns"
+    fi
+    if [ ! -z "$temp_hosts" ]; then
+        IFS=' ' read -ra HOSTS <<< "$temp_hosts"
+    fi
+    
+    save_config
+    echo -e "${GREEN}Configuration saved successfully!${NC}"
+    sleep 2
+}
+
+# Function to check DNS
+check_dns() {
+    for ((i=0; i<"${#HOSTS[*]}"; i++)); do
+        for R in "${NS[@]}"; do
+            T="${HOSTS[$i]}"
+            START_TIME=$(date +%s%N)
+            if timeout -k 3 3 ${_DIG} @${T} ${R} >/dev/null 2>&1; then
+                STATUS="${GREEN}SUCCESS${NC}"
+            else
+                STATUS="${RED}FAILED${NC}"
+            fi
+            END_TIME=$(date +%s%N)
+            PING_MS=$(( (END_TIME - START_TIME) / 1000000 ))
+            echo -e "NS:${BLUE}${R}${NC} DNS:${CYAN}${T}${NC} Status:${STATUS} ${YELLOW}${PING_MS}ms${NC} Count:${DIG_COUNT}"
+            DIG_COUNT=$((DIG_COUNT + 1))
+        done
+    done
+}
+
+# Function to start monitoring
+start_monitoring() {
+    if [ ${#NS[@]} -eq 0 ] || [ ${#HOSTS[@]} -eq 0 ]; then
+        echo -e "${RED}Error: Please configure NS and DNS settings first.${NC}"
+        sleep 2
+        return
+    }
+    
+    clear
+    echo -e "${YELLOW}Monitoring Started${NC}"
+    echo -e "${CYAN}DNS List:${NC} ${HOSTS[*]}"
+    echo -e "${CYAN}NS List:${NC} ${NS[*]}"
+    echo -e "${CYAN}Loop Delay:${NC} ${LOOP_DELAY} seconds"
+    echo -e "\n${YELLOW}Press Ctrl+C to stop monitoring${NC}\n"
+    
+    while true; do
+        check_dns
+        echo -e "${BLUE}────────────────────────────────────────${NC}"
+        if [ ${LOOP_DELAY} -gt 0 ]; then
+            sleep ${LOOP_DELAY}
+        fi
+    done
+}
+
+# Function to show help
+show_help() {
+    echo -e "\n${CYAN}Help Information:${NC}"
+    echo -e "${YELLOW}1. Configure Settings${NC}"
+    echo "   Set up your NS servers, DNS hosts, and loop delay"
+    echo -e "${YELLOW}2. Start Monitoring${NC}"
+    echo "   Begin DNS query monitoring with current settings"
+    echo -e "${YELLOW}3. View Current Config${NC}"
+    echo "   Display current configuration settings"
+    echo -e "${YELLOW}4. Help${NC}"
+    echo "   Show this help information"
+    echo -e "${YELLOW}5. Exit${NC}"
+    echo "   Exit the program"
+    echo
+    read -n 1 -s -r -p "Press any key to continue..."
+}
+
+# Function to view current config
+view_config() {
+    echo -e "\n${CYAN}Current Configuration:${NC}"
+    echo -e "${YELLOW}NS Servers:${NC} ${NS[*]:-None}"
+    echo -e "${YELLOW}DNS Hosts:${NC} ${HOSTS[*]:-None}"
+    echo -e "${YELLOW}Loop Delay:${NC} ${LOOP_DELAY} seconds\n"
+    read -n 1 -s -r -p "Press any key to continue..."
+}
+
+# Main menu function
+main_menu() {
+    local choice
+    while true; do
+        show_banner
+        echo -e "\n${CYAN}Main Menu:${NC}"
+        echo "1. Configure Settings"
+        echo "2. Start Monitoring"
+        echo "3. View Current Config"
+        echo "4. Help"
+        echo "5. Exit"
+        echo
+        read -p "Enter your choice (1-5): " choice
+        
+        case $choice in
+            1) configure_settings ;;
+            2) start_monitoring ;;
+            3) view_config ;;
+            4) show_help ;;
+            5) echo -e "\n${GREEN}Thank you for using TFN VPN Keep-Alive Tool!${NC}"; exit 0 ;;
+            *) echo -e "${RED}Invalid option. Please try again.${NC}"; sleep 1 ;;
+        esac
+    done
+}
+
+# Cleanup function
+cleanup() {
+    echo -e "\n${YELLOW}Cleaning up and exiting...${NC}"
+    exit 1
+}
+
+# Set up trap for cleanup
+trap cleanup 2 15
+
+# Initial setup
+check_dig || exit 1
+load_config
+
+# Start the program
+main_menu
