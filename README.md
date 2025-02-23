@@ -13,3 +13,6 @@ pkg install wget && rm -rf install; wget https://raw.githubusercontent.com/hahac
 ```
 gtm
 ```
+## SCREENSHOT
+
+![image](https://github.com/user-attachments/assets/85e5dcea-2d9f-426d-8983-4dd605cfacc3)
