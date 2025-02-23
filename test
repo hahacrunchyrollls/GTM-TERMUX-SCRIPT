@@ -23,9 +23,9 @@ CONFIG_FILE="$HOME/.tfn_vpn_config"
 # Function to display styled menu header
 show_menu_header() {
     local title="$1"
-    echo -e "\n${BLUE}╔════════════════════════════════════════════╗${NC}"
-    echo -e "${BLUE}║${CYAN}           $title           ${BLUE}║${NC}"
-    echo -e "${BLUE}╚════════════════════════════════════════════╝${NC}"
+    echo -e "\n${BLUE}╔════════════════════════════════╗${NC}"
+    echo -e "${BLUE}║${CYAN}           $title      ${BLUE}║${NC}"
+    echo -e "${BLUE}╚══════════════════════════════════╝${NC}"
 }
 
 # Function to display styled menu item
@@ -38,10 +38,10 @@ show_menu_item() {
 # Function to show banner
 show_banner() {
     clear
-    echo -e "${BLUE}╔════════════════════════════════════════════╗${NC}"
-    echo -e "${BLUE}║${CYAN}           TFN VPN Keep-Alive Tool          ${BLUE}║${NC}"
-    echo -e "${BLUE}║${CYAN}             Version: ${VER}                ${BLUE}║${NC}"
-    echo -e "${BLUE}╚════════════════════════════════════════════╝${NC}"
+    echo -e "${BLUE}╔══════════════════════════════════════╗${NC}"
+    echo -e "${BLUE}║${CYAN}           TFN VPN Keep-Alive Tool    ${BLUE}║${NC}"
+    echo -e "${BLUE}║${CYAN}             Version: ${VER}            ${BLUE}║${NC}"
+    echo -e "${BLUE}╚══════════════════════════════════════╝${NC}"
 }
 
 # DNS Management Functions
