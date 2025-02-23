@@ -1,6 +1,6 @@
 #!/bin/bash
 # Enhanced DNS Management Script for Termux
-# Version 1.2
+# Version 2.0
 
 # Colors
 RED='\033[0;31m'
@@ -28,6 +28,12 @@ show_banner() {
     echo -e "${BLUE}╚══════════════════════════════════════════╝${NC}"
 }
 
+# Function to log messages
+log_message() {
+    local message=$1
+    echo -e "$message"
+}
+
 # DNS Management Functions
 manage_dns() {
     while true; do
@@ -35,11 +41,10 @@ manage_dns() {
         echo -e "\n${CYAN}DNS Management Menu:${NC}"
         echo -e "${WHITE}1.${NC} Add DNS"
         echo -e "${WHITE}2.${NC} Remove DNS"
-        echo -e "${WHITE}3.${NC} Remove All DNS"
-        echo -e "${WHITE}4.${NC} View Current DNS"
-        echo -e "${WHITE}5.${NC} Back to Main Menu"
+        echo -e "${WHITE}3.${NC} View Current DNS"
+        echo -e "${WHITE}4.${NC} Back to Main Menu"
         echo
-        read -p "Enter your choice (1-5): " dns_choice
+        read -p "Enter your choice (1-4): " dns_choice
 
         case $dns_choice in
             1)
@@ -47,9 +52,9 @@ manage_dns() {
                 read dns_entry
                 if [[ -n "$dns_entry" ]]; then
                     echo "$dns_entry" >> "$DNS_FILE"
-                    echo -e "${GREEN}DNS added successfully!${NC}"
+                    log_message "${GREEN}DNS added successfully!${NC}"
                 else
-                    echo -e "${RED}Invalid input! Please enter a valid DNS.${NC}"
+                    log_message "${RED}Invalid DNS entry!${NC}"
                 fi
                 sleep 1
                 ;;
@@ -59,33 +64,28 @@ manage_dns() {
                     nl -w2 -s". " "$DNS_FILE"
                     echo -e "\n${YELLOW}Enter line number to remove:${NC}"
                     read line_num
-                    if [[ "$line_num" =~ ^[0-9]+$ ]]; then
+                    if [[ "$line_num" =~ ^[0-9]+$ ]] && [ "$line_num" -le "$(wc -l < "$DNS_FILE")" ]; then
                         sed -i "${line_num}d" "$DNS_FILE"
-                        echo -e "${GREEN}DNS removed successfully!${NC}"
+                        log_message "${GREEN}DNS removed successfully!${NC}"
                     else
-                        echo -e "${RED}Invalid input! Please enter a valid line number.${NC}"
+                        log_message "${RED}Invalid line number!${NC}"
                     fi
                 else
-                    echo -e "${RED}No DNS entries found!${NC}"
+                    log_message "${RED}No DNS entries found!${NC}"
                 fi
                 sleep 1
                 ;;
             3)
-                echo -n > "$DNS_FILE"
-                echo -e "${GREEN}All DNS entries removed!${NC}"
-                sleep 1
-                ;;
-            4)
                 echo -e "\n${CYAN}Current DNS entries:${NC}"
                 if [ -s "$DNS_FILE" ]; then
                     nl -w2 -s". " "$DNS_FILE"
                 else
-                    echo -e "${RED}No DNS entries found!${NC}"
+                    log_message "${RED}No DNS entries found!${NC}"
                 fi
                 read -n 1 -s -r -p "Press any key to continue..."
                 ;;
-            5) return ;;
-            *) echo -e "${RED}Invalid option!${NC}"; sleep 1 ;;
+            4) return ;;
+            *) log_message "${RED}Invalid option!${NC}"; sleep 1 ;;
         esac
     done
 }
@@ -97,11 +97,10 @@ manage_nameserver() {
         echo -e "\n${CYAN}Nameserver Management Menu:${NC}"
         echo -e "${WHITE}1.${NC} Add Nameserver"
         echo -e "${WHITE}2.${NC} Remove Nameserver"
-        echo -e "${WHITE}3.${NC} Remove All Nameservers"
-        echo -e "${WHITE}4.${NC} View Current Nameservers"
-        echo -e "${WHITE}5.${NC} Back to Main Menu"
+        echo -e "${WHITE}3.${NC} View Current Nameservers"
+        echo -e "${WHITE}4.${NC} Back to Main Menu"
         echo
-        read -p "Enter your choice (1-5): " ns_choice
+        read -p "Enter your choice (1-4): " ns_choice
 
         case $ns_choice in
             1)
@@ -109,9 +108,9 @@ manage_nameserver() {
                 read ns_entry
                 if [[ -n "$ns_entry" ]]; then
                     echo "$ns_entry" >> "$NAMESERVERS_FILE"
-                    echo -e "${GREEN}Nameserver added successfully!${NC}"
+                    log_message "${GREEN}Nameserver added successfully!${NC}"
                 else
-                    echo -e "${RED}Invalid input! Please enter a valid nameserver.${NC}"
+                    log_message "${RED}Invalid nameserver entry!${NC}"
                 fi
                 sleep 1
                 ;;
@@ -121,33 +120,28 @@ manage_nameserver() {
                     nl -w2 -s". " "$NAMESERVERS_FILE"
                     echo -e "\n${YELLOW}Enter line number to remove:${NC}"
                     read line_num
-                    if [[ "$line_num" =~ ^[0-9]+$ ]]; then
+                    if [[ "$line_num" =~ ^[0-9]+$ ]] && [ "$line_num" -le "$(wc -l < "$NAMESERVERS_FILE")" ]; then
                         sed -i "${line_num}d" "$NAMESERVERS_FILE"
-                        echo -e "${GREEN}Nameserver removed successfully!${NC}"
+                        log_message "${GREEN}Nameserver removed successfully!${NC}"
                     else
-                        echo -e "${RED}Invalid input! Please enter a valid line number.${NC}"
+                        log_message "${RED}Invalid line number!${NC}"
                     fi
                 else
-                    echo -e "${RED}No nameservers found!${NC}"
+                    log_message "${RED}No nameservers found!${NC}"
                 fi
                 sleep 1
                 ;;
             3)
-                echo -n > "$NAMESERVERS_FILE"
-                echo -e "${GREEN}All nameservers removed!${NC}"
-                sleep 1
-                ;;
-            4)
                 echo -e "\n${CYAN}Current nameservers:${NC}"
                 if [ -s "$NAMESERVERS_FILE" ]; then
                     nl -w2 -s". " "$NAMESERVERS_FILE"
                 else
-                    echo -e "${RED}No nameservers found!${NC}"
+                    log_message "${RED}No nameservers found!${NC}"
                 fi
                 read -n 1 -s -r -p "Press any key to continue..."
                 ;;
-            5) return ;;
-            *) echo -e "${RED}Invalid option!${NC}"; sleep 1 ;;
+            4) return ;;
+            *) log_message "${RED}Invalid option!${NC}"; sleep 1 ;;
         esac
     done
 }
@@ -161,20 +155,53 @@ set_loop_delay() {
         if [[ "$new_delay" =~ ^[0-5]$ ]]; then
             LOOP_DELAY=$new_delay
             echo "$LOOP_DELAY" > "$CONFIG_FILE"
-            echo -e "${GREEN}Loop delay updated successfully!${NC}"
+            log_message "${GREEN}Loop delay updated successfully!${NC}"
             sleep 1
             return
         else
-            echo -e "${RED}Invalid input! Please enter a number between 0 and 5.${NC}"
+            log_message "${RED}Invalid input! Please enter a number between 0 and 5.${NC}"
             sleep 1
         fi
     done
 }
 
+# Function to measure real ping time
+measure_ping() {
+    local dns=$1
+    local nameserver=$2
+    local start_time
+    local end_time
+    local response
+    
+    # Send three pings and take the average
+    local total_time=0
+    local successful_pings=0
+    
+    for i in {1..3}; do
+        start_time=$(date +%s.%N)
+        if response=$(dig @"$dns" "$nameserver" +tries=1 +time=2 2>/dev/null); then
+            end_time=$(date +%s.%N)
+            # Calculate milliseconds with bc for better precision
+            ping_time=$(echo "($end_time - $start_time) * 1000" | bc)
+            total_time=$(echo "$total_time + $ping_time" | bc)
+            successful_pings=$((successful_pings + 1))
+        fi
+    done
+    
+    # Calculate average if we had successful pings
+    if [ $successful_pings -gt 0 ]; then
+        echo "scale=2; $total_time / $successful_pings" | bc
+        return 0
+    else
+        echo "0"
+        return 1
+    fi
+}
+
 # Start Digging Function
 start_digging() {
     if [ ! -s "$DNS_FILE" ] || [ ! -s "$NAMESERVERS_FILE" ]; then
-        echo -e "${RED}Error: Please configure DNS and nameservers first!${NC}"
+        log_message "${RED}Error: Please configure DNS and nameservers first!${NC}"
         sleep 2
         return
     fi
@@ -183,20 +210,17 @@ start_digging() {
     echo -e "\n${CYAN}Starting DNS dig process...${NC}"
     echo -e "${YELLOW}Press Ctrl+C to stop${NC}\n"
 
-    # Reset DIG_COUNT
-    DIG_COUNT=0
-
     while true; do
         while read -r dns; do
             while read -r nameserver; do
-                START_TIME=$(date +%s%N)
-                if dig @"$dns" "$nameserver" +time=2 > /dev/null 2>&1; then
+                ping_result=$(measure_ping "$dns" "$nameserver")
+                if [ $(echo "$ping_result > 0" | bc) -eq 1 ]; then
                     STATUS="${GREEN}SUCCESS${NC}"
+                    PING_MS=$(printf "%.2f" $ping_result)
                 else
                     STATUS="${RED}FAILED${NC}"
+                    PING_MS="0.00"
                 fi
-                END_TIME=$(date +%s%N)
-                PING_MS=$(( (END_TIME - START_TIME) / 1000000 ))
                 echo -e "DNS:${CYAN}${dns}${NC} NS:${BLUE}${nameserver}${NC} Status:${STATUS} ${YELLOW}${PING_MS}ms${NC} Count:${DIG_COUNT}"
                 DIG_COUNT=$((DIG_COUNT + 1))
             done < "$NAMESERVERS_FILE"
@@ -228,9 +252,9 @@ while true; do
         3) set_loop_delay ;;
         4) start_digging ;;
         5) 
-            echo -e "\n${GREEN}Thank you for using DNS Management Tool!${NC}"
+            log_message "\n${GREEN}Thank you for using DNS Management Tool!${NC}"
             exit 0
             ;;
-        *) echo -e "${RED}Invalid option!${NC}"; sleep 1 ;;
+        *) log_message "${RED}Invalid option!${NC}"; sleep 1 ;;
     esac
 done
