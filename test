@@ -213,7 +213,7 @@ check_dns() {
             else
                 STATUS="${RED}FAILED${NC}"
             fi
-            log "NS:${BLUE}${R}${NC} DNS:${CYAN}${T}${NC} Status:${STATUS} Count:${DIG_COUNT}"
+            log "NS: ${BLUE}${R}${NC}\nDNS: ${CYAN}${T}${NC}\nSTATUS: ${STATUS}\nCount: ${DIG_COUNT}"
             DIG_COUNT=$((DIG_COUNT + 1))
         done
     done
