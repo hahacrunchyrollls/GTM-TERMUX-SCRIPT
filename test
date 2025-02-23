@@ -31,7 +31,7 @@ show_banner() {
     log "${BLUE}═════════════════════════════════${NC}"
     log "${CYAN}        TFN VPN DNS Script      ${NC}"
     log "${CYAN}          Version: ${VER}       ${NC}"
-    log "${BLUE}══════════════════════════════════${NC}"
+    log "${BLUE}═════════════════════════════════${NC}"
 }
 
 # Function to save configuration
