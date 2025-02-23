@@ -1,0 +1,259 @@
+#!/bin/bash
+# TFN VPN DNS Keep-Alive Script
+# Version 2.0
+# Enhanced with beautiful menu interface
+
+# Colors
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+PURPLE='\033[0;35m'
+CYAN='\033[0;36m'
+WHITE='\033[1;37m'
+NC='\033[0m' # No Color
+
+# Global variables
+VER="2.0"
+DIG_COUNT=0
+NS=()
+HOSTS=()
+LOOP_DELAY=0
+CONFIG_FILE="$HOME/.tfn_vpn_config"
+
+# Function to display centered text with padding
+print_centered() {
+    local text="$1"
+    local color="$2"
+    local width=50
+    local padding=$(( (width - ${#text}) / 2 ))
+    printf "%${padding}s" ""
+    echo -e "${color}${text}${NC}"
+}
+
+# Function to display box with text
+print_box() {
+    local text="$1"
+    local color="$2"
+    local width=50
+    echo -e "${color}╔════════════════════════════════════════════════╗${NC}"
+    print_centered "$text" "$color"
+    echo -e "${color}╚════════════════════════════════════════════════╝${NC}"
+}
+
+# Enhanced banner function
+show_banner() {
+    clear
+    echo -e "${BLUE}╔════════════════════════════════════════════════╗${NC}"
+    print_centered "✦ TFN VPN DNS Keep-Alive Tool ✦" "${CYAN}"
+    print_centered "Version: $VER" "${YELLOW}"
+    echo -e "${BLUE}╚════════════════════════════════════════════════╝${NC}"
+}
+
+# Function to manage nameservers
+manage_nameservers() {
+    local choice
+    while true; do
+        clear
+        print_box "NAMESERVER MANAGEMENT" "${PURPLE}"
+        echo -e "\n${CYAN}Current Nameservers:${NC}"
+        if [ ${#NS[@]} -eq 0 ]; then
+            echo -e "${YELLOW}No nameservers configured${NC}"
+        else
+            for i in "${!NS[@]}"; do
+                echo -e "${GREEN}$((i+1)).${NC} ${NS[$i]}"
+            done
+        fi
+        
+        echo -e "\n${WHITE}Options:${NC}"
+        echo -e "1. ${CYAN}Add Nameserver${NC}"
+        echo -e "2. ${CYAN}Remove Nameserver${NC}"
+        echo -e "3. ${CYAN}Back to Main Menu${NC}"
+        echo
+        read -p "Enter your choice (1-3): " choice
+
+        case $choice in
+            1)
+                read -p "Enter new nameserver IP/hostname: " new_ns
+                if [[ ! " ${NS[@]} " =~ " ${new_ns} " ]]; then
+                    NS+=("$new_ns")
+                    save_config
+                    echo -e "${GREEN}Nameserver added successfully!${NC}"
+                else
+                    echo -e "${RED}Nameserver already exists!${NC}"
+                fi
+                sleep 1
+                ;;
+            2)
+                if [ ${#NS[@]} -eq 0 ]; then
+                    echo -e "${RED}No nameservers to remove!${NC}"
+                    sleep 1
+                    continue
+                fi
+                echo -e "\n${YELLOW}Enter number to remove (1-${#NS[@]}):${NC}"
+                read -p "> " remove_idx
+                if [[ $remove_idx =~ ^[0-9]+$ ]] && [ $remove_idx -ge 1 ] && [ $remove_idx -le ${#NS[@]} ]; then
+                    unset 'NS[$((remove_idx-1))]'
+                    NS=("${NS[@]}")
+                    save_config
+                    echo -e "${GREEN}Nameserver removed successfully!${NC}"
+                else
+                    echo -e "${RED}Invalid selection!${NC}"
+                fi
+                sleep 1
+                ;;
+            3) return ;;
+            *) echo -e "${RED}Invalid option!${NC}"; sleep 1 ;;
+        esac
+    done
+}
+
+# Function to manage DNS hosts
+manage_dns() {
+    local choice
+    while true; do
+        clear
+        print_box "DNS HOSTS MANAGEMENT" "${PURPLE}"
+        echo -e "\n${CYAN}Current DNS Hosts:${NC}"
+        if [ ${#HOSTS[@]} -eq 0 ]; then
+            echo -e "${YELLOW}No DNS hosts configured${NC}"
+        else
+            for i in "${!HOSTS[@]}"; do
+                echo -e "${GREEN}$((i+1)).${NC} ${HOSTS[$i]}"
+            done
+        fi
+        
+        echo -e "\n${WHITE}Options:${NC}"
+        echo -e "1. ${CYAN}Add DNS Host${NC}"
+        echo -e "2. ${CYAN}Remove DNS Host${NC}"
+        echo -e "3. ${CYAN}Back to Main Menu${NC}"
+        echo
+        read -p "Enter your choice (1-3): " choice
+
+        case $choice in
+            1)
+                read -p "Enter new DNS host IP/hostname: " new_host
+                if [[ ! " ${HOSTS[@]} " =~ " ${new_host} " ]]; then
+                    HOSTS+=("$new_host")
+                    save_config
+                    echo -e "${GREEN}DNS host added successfully!${NC}"
+                else
+                    echo -e "${RED}DNS host already exists!${NC}"
+                fi
+                sleep 1
+                ;;
+            2)
+                if [ ${#HOSTS[@]} -eq 0 ]; then
+                    echo -e "${RED}No DNS hosts to remove!${NC}"
+                    sleep 1
+                    continue
+                fi
+                echo -e "\n${YELLOW}Enter number to remove (1-${#HOSTS[@]}):${NC}"
+                read -p "> " remove_idx
+                if [[ $remove_idx =~ ^[0-9]+$ ]] && [ $remove_idx -ge 1 ] && [ $remove_idx -le ${#HOSTS[@]} ]; then
+                    unset 'HOSTS[$((remove_idx-1))]'
+                    HOSTS=("${HOSTS[@]}")
+                    save_config
+                    echo -e "${GREEN}DNS host removed successfully!${NC}"
+                else
+                    echo -e "${RED}Invalid selection!${NC}"
+                fi
+                sleep 1
+                ;;
+            3) return ;;
+            *) echo -e "${RED}Invalid option!${NC}"; sleep 1 ;;
+        esac
+    done
+}
+
+# Enhanced monitoring function
+check_dns() {
+    local timestamp=$(date '+%Y-%m-%d %H:%M:%S')
+    echo -e "\n${YELLOW}[$timestamp]${NC}"
+    echo -e "${BLUE}╔════════════════════════════════════════════════╗${NC}"
+    
+    for ((i=0; i<"${#HOSTS[*]}"; i++)); do
+        for R in "${NS[@]}"; do
+            T="${HOSTS[$i]}"
+            START_TIME=$(date +%s%N)
+            if timeout -k 3 3 ${_DIG} @${T} ${R} >/dev/null 2>&1; then
+                STATUS="${GREEN}✓${NC}"
+            else
+                STATUS="${RED}✗${NC}"
+            fi
+            END_TIME=$(date +%s%N)
+            PING_MS=$(( (END_TIME - START_TIME) / 1000000 ))
+            echo -e "║ ${CYAN}NS:${NC}${BLUE}${R}${NC}"
+            echo -e "║ ${CYAN}DNS:${NC}${WHITE}${T}${NC} ${STATUS} ${YELLOW}${PING_MS}ms${NC}"
+            echo -e "║ ${PURPLE}Count: ${DIG_COUNT}${NC}"
+            echo -e "${BLUE}╟────────────────────────────────────────────────╢${NC}"
+            DIG_COUNT=$((DIG_COUNT + 1))
+        done
+    done
+    echo -e "${BLUE}╚════════════════════════════════════════════════╝${NC}"
+}
+
+# Enhanced settings configuration
+configure_settings() {
+    while true; do
+        clear
+        print_box "SETTINGS CONFIGURATION" "${PURPLE}"
+        
+        while true; do
+            echo -e "\n${CYAN}Enter loop delay (0-10 seconds):${NC} "
+            read LOOP_DELAY
+            if [[ ${LOOP_DELAY} =~ ^[0-9]|10$ ]] && [ ${LOOP_DELAY} -le 10 ]; then
+                break
+            else
+                echo -e "${RED}Invalid input. Please enter a number between 0 and 10.${NC}"
+            fi
+        done
+        
+        save_config
+        echo -e "\n${GREEN}Configuration saved successfully!${NC}"
+        sleep 1
+        return
+    done
+}
+
+# Other functions remain the same as in your original script
+# (save_config, load_config, check_dig, cleanup, etc.)
+
+# Enhanced main menu
+main_menu() {
+    local choice
+    while true; do
+        show_banner
+        echo -e "\n${WHITE}Main Menu:${NC}"
+        echo -e "╔════════════════════════════════════════════════╗"
+        echo -e "║ ${CYAN}1.${NC} Manage Nameservers                           ║"
+        echo -e "║ ${CYAN}2.${NC} Manage DNS Hosts                            ║"
+        echo -e "║ ${CYAN}3.${NC} Configure Loop Delay                        ║"
+        echo -e "║ ${CYAN}4.${NC} Start Monitoring                            ║"
+        echo -e "║ ${CYAN}5.${NC} View Current Configuration                  ║"
+        echo -e "║ ${CYAN}6.${NC} Exit                                        ║"
+        echo -e "╚════════════════════════════════════════════════╝"
+        echo
+        read -p "Enter your choice (1-6): " choice
+        
+        case $choice in
+            1) manage_nameservers ;;
+            2) manage_dns ;;
+            3) configure_settings ;;
+            4) start_monitoring ;;
+            5) view_config ;;
+            6) echo -e "\n${GREEN}Thank you for using TFN VPN Keep-Alive Tool!${NC}"; exit 0 ;;
+            *) echo -e "${RED}Invalid option. Please try again.${NC}"; sleep 1 ;;
+        esac
+    done
+}
+
+# Set up trap for cleanup
+trap cleanup 2 15
+
+# Initial setup
+check_dig || exit 1
+load_config
+
+# Start the program
+main_menu
