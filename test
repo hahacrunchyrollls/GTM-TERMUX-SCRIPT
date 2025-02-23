@@ -1,6 +1,6 @@
 #!/bin/bash
 # TFN VPN DNS Script
-# Version 2.1
+# Version 3.0
 
 # Colors
 RED='\033[0;31m'
@@ -12,20 +12,26 @@ CYAN='\033[0;36m'
 NC='\033[0m' # No Color
 
 # Global variables
-VER="2.1"
+VER="3.0"
 DIG_COUNT=0
 NS=()
 HOSTS=()
 LOOP_DELAY=0
 CONFIG_FILE="$HOME/.tfn_vpn_config"
+LOG_FILE="$HOME/tfn_vpn_dns.log"
+
+# Function to log messages
+log() {
+    echo -e "$1" | tee -a "$LOG_FILE"
+}
 
 # Function to clear screen and show banner
 show_banner() {
     clear
-    echo -e "${BLUE}╔════════════════════════════════════════════╗${NC}"
-    echo -e "${BLUE}║${CYAN}           TFN VPN DNS Script              ${BLUE}║${NC}"
-    echo -e "${BLUE}║${CYAN}             Version: ${VER}               ${BLUE}║${NC}"
-    echo -e "${BLUE}╚════════════════════════════════════════════╝${NC}"
+    log "${BLUE}╔════════════════════════════════════════════╗${NC}"
+    log "${BLUE}║${CYAN}           TFN VPN DNS Script              ${BLUE}║${NC}"
+    log "${BLUE}║${CYAN}             Version: ${VER}               ${BLUE}║${NC}"
+    log "${BLUE}╚════════════════════════════════════════════╝${NC}"
 }
 
 # Function to save configuration
@@ -51,54 +57,54 @@ dns_menu() {
     local choice
     while true; do
         show_banner
-        echo -e "\n${CYAN}DNS Management Menu:${NC}"
-        echo -e "${BLUE}╔════════════════════════╗${NC}"
-        echo -e "${BLUE}║${NC} 1. Add DNS            ${BLUE}║${NC}"
-        echo -e "${BLUE}║${NC} 2. Remove DNS         ${BLUE}║${NC}"
-        echo -e "${BLUE}║${NC} 3. View Current DNS   ${BLUE}║${NC}"
-        echo -e "${BLUE}║${NC} 4. Back to Main Menu  ${BLUE}║${NC}"
-        echo -e "${BLUE}╚════════════════════════╝${NC}"
-        echo
+        log "\n${CYAN}DNS Management Menu:${NC}"
+        log "${BLUE}╔════════════════════════╗${NC}"
+        log "${BLUE}║${NC} 1. Add DNS            ${BLUE}║${NC}"
+        log "${BLUE}║${NC} 2. Remove DNS         ${BLUE}║${NC}"
+        log "${BLUE}║${NC} 3. View Current DNS   ${BLUE}║${NC}"
+        log "${BLUE}║${NC} 4. Back to Main Menu  ${BLUE}║${NC}"
+        log "${BLUE}╚════════════════════════╝${NC}"
+        log ""
         read -p "Enter your choice (1-4): " choice
 
         case $choice in
             1)  read -p "Enter DNS to add: " dns
                 HOSTS+=("$dns")
                 save_config
-                echo -e "${GREEN}DNS added successfully!${NC}"
+                log "${GREEN}DNS added successfully!${NC}"
                 sleep 1
                 ;;
             2)  if [ ${#HOSTS[@]} -eq 0 ]; then
-                    echo -e "${RED}No DNS entries to remove!${NC}"
+                    log "${RED}No DNS entries to remove!${NC}"
                 else
-                    echo -e "\n${CYAN}Current DNS entries:${NC}"
+                    log "\n${CYAN}Current DNS entries:${NC}"
                     for i in "${!HOSTS[@]}"; do
-                        echo "$((i+1)). ${HOSTS[$i]}"
+                        log "$((i+1)). ${HOSTS[$i]}"
                     done
                     read -p "Enter number to remove: " num
-                    if [ $num -le ${#HOSTS[@]} ] && [ $num -gt 0 ]; then
+                    if [[ $num =~ ^[0-9]+$ ]] && [ $num -le ${#HOSTS[@]} ] && [ $num -gt 0 ]; then
                         unset 'HOSTS[$((num-1))]'
                         HOSTS=("${HOSTS[@]}")
                         save_config
-                        echo -e "${GREEN}DNS removed successfully!${NC}"
+                        log "${GREEN}DNS removed successfully!${NC}"
                     else
-                        echo -e "${RED}Invalid selection!${NC}"
+                        log "${RED}Invalid selection!${NC}"
                     fi
                 fi
                 sleep 1
                 ;;
-            3)  echo -e "\n${CYAN}Current DNS entries:${NC}"
+            3)  log "\n${CYAN}Current DNS entries:${NC}"
                 if [ ${#HOSTS[@]} -eq 0 ]; then
-                    echo -e "${YELLOW}No DNS configured${NC}"
+                    log "${YELLOW}No DNS configured${NC}"
                 else
                     for i in "${!HOSTS[@]}"; do
-                        echo "$((i+1)). ${HOSTS[$i]}"
+                        log "$((i+1)). ${HOSTS[$i]}"
                     done
                 fi
                 read -n 1 -s -r -p "Press any key to continue..."
                 ;;
             4)  return ;;
-            *)  echo -e "${RED}Invalid option!${NC}"
+            *)  log "${RED}Invalid option!${NC}"
                 sleep 1
                 ;;
         esac
@@ -110,54 +116,54 @@ nameserver_menu() {
     local choice
     while true; do
         show_banner
-        echo -e "\n${CYAN}Nameserver Management Menu:${NC}"
-        echo -e "${BLUE}╔════════════════════════════╗${NC}"
-        echo -e "${BLUE}║${NC} 1. Add Nameserver         ${BLUE}║${NC}"
-        echo -e "${BLUE}║${NC} 2. Remove Nameserver      ${BLUE}║${NC}"
-        echo -e "${BLUE}║${NC} 3. View Current Nameserver${BLUE}║${NC}"
-        echo -e "${BLUE}║${NC} 4. Back to Main Menu      ${BLUE}║${NC}"
-        echo -e "${BLUE}╚════════════════════════════╝${NC}"
-        echo
+        log "\n${CYAN}Nameserver Management Menu:${NC}"
+        log "${BLUE}╔════════════════════════════╗${NC}"
+        log "${BLUE}║${NC} 1. Add Nameserver         ${BLUE}║${NC}"
+        log "${BLUE}║${NC} 2. Remove Nameserver      ${BLUE}║${NC}"
+        log "${BLUE}║${NC} 3. View Current Nameserver${BLUE}║${NC}"
+        log "${BLUE}║${NC} 4. Back to Main Menu      ${BLUE}║${NC}"
+        log "${BLUE}╚════════════════════════════╝${NC}"
+        log ""
         read -p "Enter your choice (1-4): " choice
 
         case $choice in
             1)  read -p "Enter nameserver to add: " ns
                 NS+=("$ns")
                 save_config
-                echo -e "${GREEN}Nameserver added successfully!${NC}"
+                log "${GREEN}Nameserver added successfully!${NC}"
                 sleep 1
                 ;;
             2)  if [ ${#NS[@]} -eq 0 ]; then
-                    echo -e "${RED}No nameservers to remove!${NC}"
+                    log "${RED}No nameservers to remove!${NC}"
                 else
-                    echo -e "\n${CYAN}Current nameservers:${NC}"
+                    log "\n${CYAN}Current nameservers:${NC}"
                     for i in "${!NS[@]}"; do
-                        echo "$((i+1)). ${NS[$i]}"
+                        log "$((i+1)). ${NS[$i]}"
                     done
                     read -p "Enter number to remove: " num
-                    if [ $num -le ${#NS[@]} ] && [ $num -gt 0 ]; then
+                    if [[ $num =~ ^[0-9]+$ ]] && [ $num -le ${#NS[@]} ] && [ $num -gt 0 ]; then
                         unset 'NS[$((num-1))]'
                         NS=("${NS[@]}")
                         save_config
-                        echo -e "${GREEN}Nameserver removed successfully!${NC}"
+                        log "${GREEN}Nameserver removed successfully!${NC}"
                     else
-                        echo -e "${RED}Invalid selection!${NC}"
+                        log "${RED}Invalid selection!${NC}"
                     fi
                 fi
                 sleep 1
                 ;;
-            3)  echo -e "\n${CYAN}Current nameservers:${NC}"
+            3)  log "\n${CYAN}Current nameservers:${NC}"
                 if [ ${#NS[@]} -eq 0 ]; then
-                    echo -e "${YELLOW}No nameservers configured${NC}"
+                    log "${YELLOW}No nameservers configured${NC}"
                 else
                     for i in "${!NS[@]}"; do
-                        echo "$((i+1)). ${NS[$i]}"
+                        log "$((i+1)). ${NS[$i]}"
                     done
                 fi
                 read -n 1 -s -r -p "Press any key to continue..."
                 ;;
             4)  return ;;
-            *)  echo -e "${RED}Invalid option!${NC}"
+            *)  log "${RED}Invalid option!${NC}"
                 sleep 1
                 ;;
         esac
@@ -168,16 +174,16 @@ nameserver_menu() {
 set_loop_delay() {
     while true; do
         show_banner
-        echo -e "\n${CYAN}Current loop delay:${NC} ${LOOP_DELAY} seconds"
+        log "\n${CYAN}Current loop delay:${NC} ${LOOP_DELAY} seconds"
         read -p "Enter new loop delay (0-5 seconds): " new_delay
         if [[ $new_delay =~ ^[0-5]$ ]]; then
             LOOP_DELAY=$new_delay
             save_config
-            echo -e "${GREEN}Loop delay updated successfully!${NC}"
+            log "${GREEN}Loop delay updated successfully!${NC}"
             sleep 1
             return
         else
-            echo -e "${RED}Invalid input. Please enter a number between 0 and 5.${NC}"
+            log "${RED}Invalid input. Please enter a number between 0 and 5.${NC}"
             sleep 1
         fi
     done
@@ -192,7 +198,7 @@ check_dig() {
         _DIG="/data/data/com.termux/files/home/go/bin/fastdig"
         return 0
     else
-        echo -e "${RED}Error: 'dig' command not found. Please install dnsutils or configure fastdig.${NC}"
+        log "${RED}Error: 'dig' command not found. Please install dnsutils or configure fastdig.${NC}"
         return 1
     fi
 }
@@ -207,7 +213,7 @@ check_dns() {
             else
                 STATUS="${RED}FAILED${NC}"
             fi
-            echo -e "NS:${BLUE}${R}${NC} DNS:${CYAN}${T}${NC} Status:${STATUS} Count:${DIG_COUNT}"
+            log "NS:${BLUE}${R}${NC} DNS:${CYAN}${T}${NC} Status:${STATUS} Count:${DIG_COUNT}"
             DIG_COUNT=$((DIG_COUNT + 1))
         done
     done
@@ -216,21 +222,21 @@ check_dns() {
 # Function to start digging
 start_digging() {
     if [ ${#NS[@]} -eq 0 ] || [ ${#HOSTS[@]} -eq 0 ]; then
-        echo -e "${RED}Error: Please configure both DNS and nameserver settings first.${NC}"
+        log "${RED}Error: Please configure both DNS and nameserver settings first.${NC}"
         sleep 2
         return
-    }
+    fi
     
     clear
-    echo -e "${YELLOW}Digging Started${NC}"
-    echo -e "${CYAN}DNS List:${NC} ${HOSTS[*]}"
-    echo -e "${CYAN}NS List:${NC} ${NS[*]}"
-    echo -e "${CYAN}Loop Delay:${NC} ${LOOP_DELAY} seconds"
-    echo -e "\n${YELLOW}Press Ctrl+C to stop digging${NC}\n"
+    log "${YELLOW}Digging Started${NC}"
+    log "${CYAN}DNS List:${NC} ${HOSTS[*]}"
+    log "${CYAN}NS List:${NC} ${NS[*]}"
+    log "${CYAN}Loop Delay:${NC} ${LOOP_DELAY} seconds"
+    log "\n${YELLOW}Press Ctrl+C to stop digging${NC}\n"
     
     while true; do
         check_dns
-        echo -e "${BLUE}────────────────────────────────────────${NC}"
+        log "${BLUE}────────────────────────────────────────${NC}"
         if [ ${LOOP_DELAY} -gt 0 ]; then
             sleep ${LOOP_DELAY}
         fi
@@ -242,15 +248,15 @@ main_menu() {
     local choice
     while true; do
         show_banner
-        echo -e "\n${CYAN}Main Menu:${NC}"
-        echo -e "${BLUE}╔════════════════════════╗${NC}"
-        echo -e "${BLUE}║${NC} 1. DNS Management      ${BLUE}║${NC}"
-        echo -e "${BLUE}║${NC} 2. Nameserver Management${BLUE}║${NC}"
-        echo -e "${BLUE}║${NC} 3. Set Loop Delay      ${BLUE}║${NC}"
-        echo -e "${BLUE}║${NC} 4. Start Digging       ${BLUE}║${NC}"
-        echo -e "${BLUE}║${NC} 5. Exit                ${BLUE}║${NC}"
-        echo -e "${BLUE}╚════════════════════════╝${NC}"
-        echo
+        log "\n${CYAN}Main Menu:${NC}"
+        log "${BLUE}╔════════════════════════╗${NC}"
+        log "${BLUE}║${NC} 1. DNS Management      ${BLUE}║${NC}"
+        log "${BLUE}║${NC} 2. Nameserver Management${BLUE}║${NC}"
+        log "${BLUE}║${NC} 3. Set Loop Delay      ${BLUE}║${NC}"
+        log "${BLUE}║${NC} 4. Start Digging       ${BLUE}║${NC}"
+        log "${BLUE}║${NC} 5. Exit                ${BLUE}║${NC}"
+        log "${BLUE}╚════════════════════════╝${NC}"
+        log ""
         read -p "Enter your choice (1-5): " choice
         
         case $choice in
@@ -258,15 +264,15 @@ main_menu() {
             2) nameserver_menu ;;
             3) set_loop_delay ;;
             4) start_digging ;;
-            5) echo -e "\n${GREEN}Thank you for using TFN VPN DNS Script!${NC}"; exit 0 ;;
-            *) echo -e "${RED}Invalid option. Please try again.${NC}"; sleep 1 ;;
+            5) log "\n${GREEN}Thank you for using TFN VPN DNS Script!${NC}"; exit 0 ;;
+            *) log "${RED}Invalid option. Please try again.${NC}"; sleep 1 ;;
         esac
     done
 }
 
 # Cleanup function
 cleanup() {
-    echo -e "\n${YELLOW}Cleaning up and exiting...${NC}"
+    log "\n${YELLOW}Cleaning up and exiting...${NC}"
     exit 1
 }
 
