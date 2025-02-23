@@ -248,14 +248,14 @@ main_menu() {
     local choice
     while true; do
         show_banner
-        log "\n${CYAN}Main Menu:${NC}"
-        log "${BLUE}═══════════════════════════${NC}"
-        log "${NC} 1. DNS Management      ${BLUE}║${NC}"
-        log "${NC} 2. NS Management       ${BLUE}║${NC}"
-        log "${NC} 3. Set Loop Delay      ${BLUE}║${NC}"
-        log "${NC} 4. Start Digging       ${BLUE}║${NC}"
-        log "${NC} 5. Exit                ${BLUE}║${NC}"
-        log "${BLUE}═══════════════════════════${NC}"
+        log "\n${CYAN}        Main Menu:${NC}"
+        log "${BLUE}═════════════════════════════${NC}"
+        log "${NC} 1. DNS Management      ${NC}"
+        log "${NC} 2. NS Management       ${NC}"
+        log "${NC} 3. Set Loop Delay      ${NC}"
+        log "${NC} 4. Start Digging       ${NC}"
+        log "${NC} 5. Exit                ${NC}"
+        log "${BLUE}═════════════════════════════${NC}"
         log ""
         read -p "Enter your choice (1-5): " choice
         
