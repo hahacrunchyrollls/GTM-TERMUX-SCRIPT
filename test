@@ -1,234 +1,261 @@
-#!/bin/bash
-
-# Copyright ©UDPTeam
-# Discord: https://discord.gg/civ3
-# Enhanced Menu Version
+#!/data/data/com.termux/files/usr/bin/bash
 
 # Colors
 RED='\e[1;31m'
 GREEN='\e[1;32m'
-BLUE='\e[1;34m'
 YELLOW='\e[1;33m'
-PURPLE='\e[1;35m'
+BLUE='\e[1;34m'
+MAGENTA='\e[1;35m'
 CYAN='\e[1;36m'
 NC='\e[0m' # No Color
-BOLD='\e[1m'
 
-# Configuration Variables
-NS='ismael.ns.hashi-rama.com'
-A='ismael.ns.hashi-rama.com'
+# Variables
+VERSION="1.0"
 LOOP_DELAY=5
-declare -a HOSTS=()
-
-# Dig Configuration
+CUSTOM_DIG="/data/data/com.termux/files/home/go/bin/fastdig"
 DIG_EXEC="DEFAULT"
-CUSTOM_DIG=/data/data/com.termux/files/home/go/bin/fastdig
+declare -a HOSTS=()
+declare -a NAMESERVERS=()
 
-# Version
-VER=0.2
-
-# Setup dig command
-case "${DIG_EXEC}" in
-    DEFAULT|D)
-        _DIG="$(command -v dig)"
-        ;;
-    CUSTOM|C)
-        _DIG="${CUSTOM_DIG}"
-        ;;
-esac
-
-# Check if dig is available
-if [ ! $(command -v ${_DIG}) ]; then
-    printf "%b" "Dig command failed to run, " \
-    "please install dig(dnsutils) or check " \
-    "\$DIG_EXEC & \$CUSTOM_DIG variable.\n" && exit 1
-fi
-
-# Functions
-clear_screen() {
+# Banner
+show_banner() {
     clear
-}
-
-print_header() {
-    echo -e "${PURPLE}╔════════════════════════════════════════╗${NC}"
-    echo -e "${PURPLE}║       ${BOLD}DNSTT Keep-Alive Script v${VER}${NC}      ${PURPLE}║${NC}"
-    echo -e "${PURPLE}╚════════════════════════════════════════╝${NC}"
+    echo -e "${CYAN}╔════════════════════════════════════════╗${NC}"
+    echo -e "${CYAN}║       DNS Digger Tool for Termux       ║${NC}"
+    echo -e "${CYAN}║            Version: ${VERSION}              ║${NC}"
+    echo -e "${CYAN}╚════════════════════════════════════════╝${NC}"
     echo
 }
 
-print_menu() {
-    echo -e "${CYAN}╔════════════════ MAIN MENU ═══════════════╗${NC}"
-    echo -e "${CYAN}║${NC} ${GREEN}1.${NC} DNS Management                         ${CYAN}║${NC}"
-    echo -e "${CYAN}║${NC} ${GREEN}2.${NC} Nameserver Management                  ${CYAN}║${NC}"
-    echo -e "${CYAN}║${NC} ${GREEN}3.${NC} Set Loop Delay (Current: ${LOOP_DELAY}s)         ${CYAN}║${NC}"
-    echo -e "${CYAN}║${NC} ${GREEN}4.${NC} Start Digging                         ${CYAN}║${NC}"
-    echo -e "${CYAN}║${NC} ${GREEN}5.${NC} Exit                                  ${CYAN}║${NC}"
-    echo -e "${CYAN}╚══════════════════════════════════════════╝${NC}"
-}
-
-print_dns_submenu() {
-    echo -e "${YELLOW}╔═════════════ DNS MANAGEMENT ════════════╗${NC}"
-    echo -e "${YELLOW}║${NC} ${GREEN}1.${NC} Add DNS                              ${YELLOW}║${NC}"
-    echo -e "${YELLOW}║${NC} ${GREEN}2.${NC} Remove DNS                           ${YELLOW}║${NC}"
-    echo -e "${YELLOW}║${NC} ${GREEN}3.${NC} Remove All DNS                       ${YELLOW}║${NC}"
-    echo -e "${YELLOW}║${NC} ${GREEN}4.${NC} Back to Main Menu                    ${YELLOW}║${NC}"
-    echo -e "${YELLOW}╚══════════════════════════════════════════╝${NC}"
-}
-
-print_nameserver_submenu() {
-    echo -e "${BLUE}╔══════════ NAMESERVER MANAGEMENT ═════════╗${NC}"
-    echo -e "${BLUE}║${NC} ${GREEN}1.${NC} Add Nameserver                        ${BLUE}║${NC}"
-    echo -e "${BLUE}║${NC} ${GREEN}2.${NC} Remove Nameserver                     ${BLUE}║${NC}"
-    echo -e "${BLUE}║${NC} ${GREEN}3.${NC} Remove All Nameservers                ${BLUE}║${NC}"
-    echo -e "${BLUE}║${NC} ${GREEN}4.${NC} Back to Main Menu                     ${BLUE}║${NC}"
-    echo -e "${BLUE}╚══════════════════════════════════════════╝${NC}"
-}
-
-add_dns() {
-    echo -e "${YELLOW}Enter DNS IP address to add:${NC}"
-    read dns_ip
-    if [[ $dns_ip =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-        HOSTS+=("$dns_ip")
-        echo -e "${GREEN}DNS $dns_ip added successfully!${NC}"
-    else
-        echo -e "${RED}Invalid IP address format!${NC}"
-    fi
-    sleep 2
-}
-
-remove_dns() {
-    if [ ${#HOSTS[@]} -eq 0 ]; then
-        echo -e "${RED}No DNS entries to remove!${NC}"
-        sleep 2
-        return
-    fi
-    
-    echo -e "${YELLOW}Current DNS entries:${NC}"
-    for i in "${!HOSTS[@]}"; do
-        echo -e "${GREEN}$((i+1))${NC}. ${HOSTS[$i]}"
-    done
-    
-    echo -e "${YELLOW}Enter the number of DNS to remove:${NC}"
-    read dns_num
-    
-    if [ $dns_num -ge 1 ] && [ $dns_num -le ${#HOSTS[@]} ]; then
-        unset "HOSTS[$((dns_num-1))]"
-        HOSTS=("${HOSTS[@]}")
-        echo -e "${GREEN}DNS removed successfully!${NC}"
-    else
-        echo -e "${RED}Invalid selection!${NC}"
-    fi
-    sleep 2
-}
-
-remove_all_dns() {
-    HOSTS=()
-    echo -e "${GREEN}All DNS entries removed!${NC}"
-    sleep 2
-}
-
-set_loop_delay() {
-    echo -e "${YELLOW}Enter loop delay (0-5 seconds):${NC}"
-    read delay
-    if [[ $delay =~ ^[0-5]$ ]]; then
-        LOOP_DELAY=$delay
-        echo -e "${GREEN}Loop delay set to $delay seconds!${NC}"
-    else
-        echo -e "${RED}Invalid delay value! Must be between 0-5${NC}"
-    fi
-    sleep 2
-}
-
-check_dns() {
-    for ((i=0; i<"${#HOSTS[*]}"; i++)); do
-        for R in "${A}" "${NS}"; do
-            T="${HOSTS[$i]}"
-            timeout -k 3 3 ${_DIG} @${T} ${R} >/dev/null 2>&1
-            if [ $? -eq 0 ]; then
-                echo -e "${GREEN}✓ R:${R} D:${T}${NC}"
-            else
-                echo -e "${RED}✗ R:${R} D:${T}${NC}"
-            fi
-        done
-    done
-}
-
-start_digging() {
-    if [ ${#HOSTS[@]} -eq 0 ]; then
-        echo -e "${RED}No DNS entries found! Please add DNS first.${NC}"
-        sleep 2
-        return
-    }
-    
-    clear_screen
-    print_header
-    echo -e "${CYAN}Starting dig process...${NC}"
-    echo -e "${BLUE}DNS List: [${HOSTS[*]}]${NC}"
-    echo -e "${YELLOW}Loop Delay: ${LOOP_DELAY} seconds${NC}"
-    echo -e "${RED}Press CTRL + C to stop${NC}"
-    echo
-    
-    while true; do
-        check_dns
-        echo -e "${PURPLE}.--. .-.. . .- ... .     .-- .- .. -${NC}"
-        sleep ${LOOP_DELAY}
-    done
-}
-
-# Main Loop
-while true; do
-    clear_screen
-    print_header
-    print_menu
-    echo -e "${YELLOW}Enter your choice [1-5]:${NC} "
-    read choice
-
-    case $choice in
-        1)  # DNS Management Submenu
-            while true; do
-                clear_screen
-                print_header
-                print_dns_submenu
-                echo -e "${YELLOW}Enter your choice [1-4]:${NC} "
-                read dns_choice
-                
-                case $dns_choice in
-                    1) add_dns ;;
-                    2) remove_dns ;;
-                    3) remove_all_dns ;;
-                    4) break ;;
-                    *) echo -e "${RED}Invalid option!${NC}"; sleep 1 ;;
-                esac
-            done
+# Check if dig is installed
+check_dig() {
+    case "${DIG_EXEC}" in
+        DEFAULT|D)
+            _DIG="$(command -v dig)"
             ;;
-            
-        2)  # Nameserver Management Submenu
-            while true; do
-                clear_screen
-                print_header
-                print_nameserver_submenu
-                echo -e "${YELLOW}Enter your choice [1-4]:${NC} "
-                read ns_choice
-                
-                case $ns_choice in
-                    1) echo "Feature coming soon..."; sleep 2 ;;
-                    2) echo "Feature coming soon..."; sleep 2 ;;
-                    3) echo "Feature coming soon..."; sleep 2 ;;
-                    4) break ;;
-                    *) echo -e "${RED}Invalid option!${NC}"; sleep 1 ;;
-                esac
-            done
-            ;;
-            
-        3) set_loop_delay ;;
-        4) start_digging ;;
-        5) 
-            echo -e "${GREEN}Thank you for using DNS Digger!${NC}"
-            exit 0
-            ;;
-        *)
-            echo -e "${RED}Invalid option!${NC}"
-            sleep 1
+        CUSTOM|C)
+            _DIG="${CUSTOM_DIG}"
             ;;
     esac
-done
+
+    if [ ! $(command -v ${_DIG}) ]; then
+        echo -e "${RED}Error: dig command not found!${NC}"
+        echo -e "${YELLOW}Please install dnsutils by running:${NC}"
+        echo -e "${GREEN}pkg install dnsutils${NC}"
+        exit 1
+    fi
+}
+
+# DNS Management Menu
+dns_menu() {
+    while true; do
+        show_banner
+        echo -e "${YELLOW}=== DNS Management ===${NC}"
+        echo -e "${CYAN}1.${NC} Add DNS"
+        echo -e "${CYAN}2.${NC} Remove DNS"
+        echo -e "${CYAN}3.${NC} Remove All DNS"
+        echo -e "${CYAN}4.${NC} Show DNS List"
+        echo -e "${CYAN}5.${NC} Back to Main Menu"
+        echo
+        echo -e "${GREEN}Current DNS List: ${NC}${BLUE}${HOSTS[@]}${NC}"
+        echo
+        read -p "Select an option [1-5]: " choice
+
+        case $choice in
+            1)
+                read -p "Enter DNS IP: " dns
+                HOSTS+=("$dns")
+                echo -e "${GREEN}DNS added successfully!${NC}"
+                sleep 1
+                ;;
+            2)
+                if [ ${#HOSTS[@]} -eq 0 ]; then
+                    echo -e "${RED}No DNS entries to remove!${NC}"
+                    sleep 1
+                    continue
+                fi
+                echo "Current DNS entries:"
+                for i in "${!HOSTS[@]}"; do
+                    echo -e "${CYAN}$i${NC}: ${HOSTS[$i]}"
+                done
+                read -p "Enter index to remove: " index
+                if [ $index -ge 0 ] && [ $index -lt ${#HOSTS[@]} ]; then
+                    unset 'HOSTS[$index]'
+                    HOSTS=("${HOSTS[@]}")
+                    echo -e "${GREEN}DNS removed successfully!${NC}"
+                else
+                    echo -e "${RED}Invalid index!${NC}"
+                fi
+                sleep 1
+                ;;
+            3)
+                HOSTS=()
+                echo -e "${GREEN}All DNS entries removed!${NC}"
+                sleep 1
+                ;;
+            4)
+                echo -e "${YELLOW}Current DNS List:${NC}"
+                for dns in "${HOSTS[@]}"; do
+                    echo -e "${BLUE}$dns${NC}"
+                done
+                read -p "Press Enter to continue..."
+                ;;
+            5)
+                return
+                ;;
+            *)
+                echo -e "${RED}Invalid option!${NC}"
+                sleep 1
+                ;;
+        esac
+    done
+}
+
+# Nameserver Management Menu
+nameserver_menu() {
+    while true; do
+        show_banner
+        echo -e "${YELLOW}=== Nameserver Management ===${NC}"
+        echo -e "${CYAN}1.${NC} Add Nameserver"
+        echo -e "${CYAN}2.${NC} Remove Nameserver"
+        echo -e "${CYAN}3.${NC} Remove All Nameservers"
+        echo -e "${CYAN}4.${NC} Show Nameserver List"
+        echo -e "${CYAN}5.${NC} Back to Main Menu"
+        echo
+        echo -e "${GREEN}Current Nameservers: ${NC}${BLUE}${NAMESERVERS[@]}${NC}"
+        echo
+        read -p "Select an option [1-5]: " choice
+
+        case $choice in
+            1)
+                read -p "Enter Nameserver: " ns
+                NAMESERVERS+=("$ns")
+                echo -e "${GREEN}Nameserver added successfully!${NC}"
+                sleep 1
+                ;;
+            2)
+                if [ ${#NAMESERVERS[@]} -eq 0 ]; then
+                    echo -e "${RED}No Nameserver entries to remove!${NC}"
+                    sleep 1
+                    continue
+                fi
+                echo "Current Nameserver entries:"
+                for i in "${!NAMESERVERS[@]}"; do
+                    echo -e "${CYAN}$i${NC}: ${NAMESERVERS[$i]}"
+                done
+                read -p "Enter index to remove: " index
+                if [ $index -ge 0 ] && [ $index -lt ${#NAMESERVERS[@]} ]; then
+                    unset 'NAMESERVERS[$index]'
+                    NAMESERVERS=("${NAMESERVERS[@]}")
+                    echo -e "${GREEN}Nameserver removed successfully!${NC}"
+                else
+                    echo -e "${RED}Invalid index!${NC}"
+                fi
+                sleep 1
+                ;;
+            3)
+                NAMESERVERS=()
+                echo -e "${GREEN}All Nameserver entries removed!${NC}"
+                sleep 1
+                ;;
+            4)
+                echo -e "${YELLOW}Current Nameserver List:${NC}"
+                for ns in "${NAMESERVERS[@]}"; do
+                    echo -e "${BLUE}$ns${NC}"
+                done
+                read -p "Press Enter to continue..."
+                ;;
+            5)
+                return
+                ;;
+            *)
+                echo -e "${RED}Invalid option!${NC}"
+                sleep 1
+                ;;
+        esac
+    done
+}
+
+# Dig function
+perform_dig() {
+    if [ ${#HOSTS[@]} -eq 0 ]; then
+        echo -e "${RED}Error: No DNS entries available!${NC}"
+        return 1
+    fi
+    if [ ${#NAMESERVERS[@]} -eq 0 ]; then
+        echo -e "${RED}Error: No Nameserver entries available!${NC}"
+        return 1
+    }
+
+    echo -e "${YELLOW}=== Digging DNS ===${NC}"
+    echo -e "${CYAN}Press Ctrl+C to stop${NC}"
+    echo
+
+    while true; do
+        for host in "${HOSTS[@]}"; do
+            for ns in "${NAMESERVERS[@]}"; do
+                result=$(timeout -k .3 .3 ${_DIG} @${host} ${ns} 2>&1)
+                if [ $? -eq 0 ]; then
+                    status="${GREEN}SUCCESS${NC}"
+                else
+                    status="${RED}FAILED${NC}"
+                fi
+                echo -e "[$(date +%H:%M:%S)] ${BLUE}DNS${NC}: ${host} | ${BLUE}NS${NC}: ${ns} | Status: ${status}"
+            done
+        done
+        echo -e "${YELLOW}Waiting ${LOOP_DELAY} seconds...${NC}"
+        sleep $LOOP_DELAY
+        echo
+    done
+}
+
+# Main Menu
+main_menu() {
+    while true; do
+        show_banner
+        echo -e "${YELLOW}=== Main Menu ===${NC}"
+        echo -e "${CYAN}1.${NC} DNS Management"
+        echo -e "${CYAN}2.${NC} Nameserver Management"
+        echo -e "${CYAN}3.${NC} Set Loop Delay (Current: ${LOOP_DELAY}s)"
+        echo -e "${CYAN}4.${NC} Start Digging"
+        echo -e "${CYAN}5.${NC} Exit"
+        echo
+        read -p "Select an option [1-5]: " choice
+
+        case $choice in
+            1)
+                dns_menu
+                ;;
+            2)
+                nameserver_menu
+                ;;
+            3)
+                read -p "Enter new loop delay (0-5 seconds): " new_delay
+                if [[ "$new_delay" =~ ^[0-5]$ ]]; then
+                    LOOP_DELAY=$new_delay
+                    echo -e "${GREEN}Loop delay updated successfully!${NC}"
+                else
+                    echo -e "${RED}Invalid delay value! Must be between 0 and 5.${NC}"
+                fi
+                sleep 1
+                ;;
+            4)
+                perform_dig
+                ;;
+            5)
+                echo -e "${GREEN}Thanks for using DNS Digger!${NC}"
+                exit 0
+                ;;
+            *)
+                echo -e "${RED}Invalid option!${NC}"
+                sleep 1
+                ;;
+        esac
+    done
+}
+
+# Check dependencies
+check_dig
+
+# Start the script
+main_menu
