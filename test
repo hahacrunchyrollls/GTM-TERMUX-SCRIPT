@@ -28,10 +28,10 @@ log() {
 # Function to clear screen and show banner
 show_banner() {
     clear
-    log "${BLUE}╔════════════════════════════════════════════╗${NC}"
-    log "${BLUE}║${CYAN}           TFN VPN DNS Script              ${BLUE}║${NC}"
-    log "${BLUE}║${CYAN}             Version: ${VER}               ${BLUE}║${NC}"
-    log "${BLUE}╚════════════════════════════════════════════╝${NC}"
+    log "${BLUE}╔═════════════════════════════════════════╗${NC}"
+    log "${BLUE}║${CYAN}        TFN VPN DNS Script       ${BLUE}║${NC}"
+    log "${BLUE}║${CYAN}          Version: ${VER}        ${BLUE}║${NC}"
+    log "${BLUE}╚═════════════════════════════════════════╝${NC}"
 }
 
 # Function to save configuration
@@ -118,9 +118,9 @@ nameserver_menu() {
         show_banner
         log "\n${CYAN}Nameserver Management Menu:${NC}"
         log "${BLUE}╔════════════════════════════╗${NC}"
-        log "${BLUE}║${NC} 1. Add Nameserver         ${BLUE}║${NC}"
-        log "${BLUE}║${NC} 2. Remove Nameserver      ${BLUE}║${NC}"
-        log "${BLUE}║${NC} 3. View Current Nameserver${BLUE}║${NC}"
+        log "${BLUE}║${NC} 1. Add NS         ${BLUE}║${NC}"
+        log "${BLUE}║${NC} 2. Remove NS      ${BLUE}║${NC}"
+        log "${BLUE}║${NC} 3. View Current NS${BLUE}║${NC}"
         log "${BLUE}║${NC} 4. Back to Main Menu      ${BLUE}║${NC}"
         log "${BLUE}╚════════════════════════════╝${NC}"
         log ""
@@ -251,7 +251,7 @@ main_menu() {
         log "\n${CYAN}Main Menu:${NC}"
         log "${BLUE}╔════════════════════════╗${NC}"
         log "${BLUE}║${NC} 1. DNS Management      ${BLUE}║${NC}"
-        log "${BLUE}║${NC} 2. Nameserver Management${BLUE}║${NC}"
+        log "${BLUE}║${NC} 2. NS Management${BLUE}║${NC}"
         log "${BLUE}║${NC} 3. Set Loop Delay      ${BLUE}║${NC}"
         log "${BLUE}║${NC} 4. Start Digging       ${BLUE}║${NC}"
         log "${BLUE}║${NC} 5. Exit                ${BLUE}║${NC}"
