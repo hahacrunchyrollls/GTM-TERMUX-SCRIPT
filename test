@@ -70,6 +70,34 @@ add_dns() {
     sleep 2
 }
 
+# Function to remove DNS
+remove_dns() {
+    show_banner
+    if [ ${#HOSTS[@]} -eq 0 ]; then
+        echo -e "${RED}No DNS servers to remove!${NC}"
+        sleep 2
+        return
+    fi
+    
+    echo -e "${YELLOW}Current DNS Servers:${NC}"
+    for i in "${!HOSTS[@]}"; do
+        echo -e "${GREEN}$((i+1)). ${HOSTS[$i]}${NC}"
+    done
+    echo
+    echo -e "${YELLOW}Enter the number of DNS to remove (1-${#HOSTS[@]}):${NC}"
+    read -p "→ " dns_num
+    
+    if [[ $dns_num =~ ^[0-9]+$ ]] && [ $dns_num -ge 1 ] && [ $dns_num -le ${#HOSTS[@]} ]; then
+        removed_dns=${HOSTS[$((dns_num-1))]}
+        unset 'HOSTS[$((dns_num-1))]'
+        HOSTS=("${HOSTS[@]}")  # Reindex array
+        echo -e "${GREEN}Removed DNS: $removed_dns${NC}"
+    else
+        echo -e "${RED}Invalid selection!${NC}"
+    fi
+    sleep 2
+}
+
 # Function to add new nameserver
 add_nameserver() {
     show_banner
@@ -87,13 +115,31 @@ add_nameserver() {
     sleep 2
 }
 
+# Function to remove nameserver
+remove_nameserver() {
+    show_banner
+    if [ -z "$NS" ]; then
+        echo -e "${RED}No nameserver currently set!${NC}"
+    else
+        echo -e "${YELLOW}Current Nameserver: ${GREEN}$NS${NC}"
+        echo -e "${YELLOW}Are you sure you want to remove this nameserver? (y/n)${NC}"
+        read -p "→ " confirm
+        
+        if [[ $confirm =~ ^[Yy]$ ]]; then
+            NS=""
+            echo -e "${GREEN}Nameserver removed successfully!${NC}"
+        else
+            echo -e "${YELLOW}Operation cancelled${NC}"
+        fi
+    fi
+    sleep 2
+}
+
 # Function to set loop delay
 set_loop_delay() {
     show_banner
-    echo -e "${YELLOW}Current Loop Delay: ${GREEN}$LOOP_DELAY${NC} seconds"
-    echo
     while true; do
-        echo -e "${YELLOW}Enter new loop delay (0-5 seconds):${NC}"
+        echo -e "${YELLOW}Enter loop delay (0-5 seconds):${NC}"
         read -p "→ " new_delay
         if [[ $new_delay =~ ^[0-5]$ ]]; then
             LOOP_DELAY=$new_delay
@@ -107,30 +153,10 @@ set_loop_delay() {
     sleep 2
 }
 
-# DNS check function
-check_dns() {
-    show_banner
-    echo -e "${YELLOW}Starting DNS Check...${NC}"
-    echo
-    for ((i=0; i<"${#HOSTS[*]}"; i++)); do
-        for R in "${NS}"; do
-            T="${HOSTS[$i]}"
-            [[ -z $(timeout -k 3 3 ${_DIG} @${T} ${R}) ]] && M=31 || M=32
-            echo -e "\\e[1;${M}m→ NS:${R} DNS:${T}\\e[0m"
-        done
-    done
-    echo -e "${CYAN}═══════════════════════════════════════════════════${NC}"
-    echo -e "${YELLOW}Press any key to continue...${NC}"
-    read -n 1
-}
-
 # Start monitoring function
 start_monitoring() {
     show_banner
     echo -e "${YELLOW}Starting DNS Monitoring...${NC}"
-    echo -e "${BLUE}DNS List: ${HOSTS[*]}${NC}"
-    echo -e "${BLUE}Nameserver: $NS${NC}"
-    echo -e "${BLUE}Loop Delay: $LOOP_DELAY seconds${NC}"
     echo -e "${RED}Press CTRL + C to stop${NC}"
     echo
     
@@ -152,30 +178,30 @@ main_menu() {
     while true; do
         show_banner
         echo -e "${YELLOW}1.${NC} Add DNS Server"
-        echo -e "${YELLOW}2.${NC} Add/Change Nameserver"
-        echo -e "${YELLOW}3.${NC} Set Loop Delay"
-        echo -e "${YELLOW}4.${NC} Check DNS Status"
-        echo -e "${YELLOW}5.${NC} Start Monitoring"
-        echo -e "${YELLOW}6.${NC} Exit"
+        echo -e "${YELLOW}2.${NC} Remove DNS Server"
+        echo -e "${YELLOW}3.${NC} Add Nameserver"
+        echo -e "${YELLOW}4.${NC} Remove Nameserver"
+        echo -e "${YELLOW}5.${NC} Set Loop Delay"
+        echo -e "${YELLOW}6.${NC} Start Monitoring"
+        echo -e "${YELLOW}7.${NC} Exit"
         echo
-        echo -e "${CYAN}Current Configuration:${NC}"
-        echo -e "${BLUE}→ DNS Servers: ${#HOSTS[@]}${NC}"
-        echo -e "${BLUE}→ Nameserver: $NS${NC}"
-        echo -e "${BLUE}→ Loop Delay: $LOOP_DELAY seconds${NC}"
-        echo
-        read -p "Enter your choice [1-6]: " choice
+        read -p "Enter your choice [1-7]: " choice
         
         case $choice in
             1) add_dns ;;
-            2) add_nameserver ;;
-            3) set_loop_delay ;;
-            4) check_dns ;;
-            5) start_monitoring ;;
-            6) echo -e "${GREEN}Thank you for using DNSTT Manager!${NC}"; exit 0 ;;
+            2) remove_dns ;;
+            3) add_nameserver ;;
+            4) remove_nameserver ;;
+            5) set_loop_delay ;;
+            6) start_monitoring ;;
+            7) echo -e "${GREEN}Thank you for using DNSTT Manager!${NC}"; exit 0 ;;
             *) echo -e "${RED}Invalid option!${NC}"; sleep 1 ;;
         esac
     done
 }
+
+# Trap CTRL+C
+trap 'echo -e "\n${GREEN}Script terminated by user${NC}"; exit 0' SIGINT
 
 # Initialize and start the script
 init_dig
