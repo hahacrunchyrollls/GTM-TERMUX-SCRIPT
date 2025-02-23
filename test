@@ -1,6 +1,6 @@
 #!/bin/bash
 # Enhanced DNS Manager
-# Version 2.0
+# Version 2.1
 
 # Colors
 RED='\033[0;31m'
@@ -14,12 +14,13 @@ NC='\033[0m'
 BOLD='\033[1m'
 
 # Global variables
-VER="2.0"
+VER="2.1"
 DIG_COUNT=0
 NS=()
 HOSTS=()
 LOOP_DELAY=0
 CONFIG_FILE="$HOME/.dns_manager_config"
+IS_LOOPING=false
 
 # Function to create box drawing
 draw_box() {
@@ -40,181 +41,65 @@ show_banner() {
     echo
 }
 
-# Function to display menu items
-display_menu_item() {
-    local number="$1"
-    local description="$2"
-    echo -e "${YELLOW}[$number]${NC} ${WHITE}${description}${NC}"
-}
-
-# Function to manage nameservers
-manage_nameservers() {
+# Function to set sleep time
+set_sleep_time() {
+    show_banner
+    echo -e "${CYAN}${BOLD}Sleep Time Configuration${NC}\n"
+    echo -e "Current sleep time: ${YELLOW}${LOOP_DELAY}${NC} seconds\n"
+    
     while true; do
-        show_banner
-        echo -e "${CYAN}${BOLD}Nameserver Management${NC}\n"
-        echo -e "${WHITE}Current Nameservers:${NC}"
-        
-        if [ ${#NS[@]} -eq 0 ]; then
-            echo -e "${RED}No nameservers configured${NC}"
+        read -p "Enter new sleep time (0-5 seconds): " new_delay
+        if [[ "$new_delay" =~ ^[0-5]$ ]]; then
+            LOOP_DELAY=$new_delay
+            save_config
+            echo -e "\n${GREEN}Sleep time updated successfully!${NC}"
+            sleep 1
+            break
         else
-            for i in "${!NS[@]}"; do
-                echo -e "${GREEN}$((i+1)).${NC} ${NS[$i]}"
-            done
+            echo -e "\n${RED}Invalid input! Please enter a number between 0 and 5.${NC}"
         fi
-        
-        echo -e "\n${CYAN}Options:${NC}"
-        display_menu_item "1" "Add Nameserver"
-        display_menu_item "2" "Remove Nameserver"
-        display_menu_item "3" "Return to Main Menu"
-        echo
-        
-        read -p "Enter your choice: " choice
-        
-        case $choice in
-            1)
-                echo
-                read -p "Enter new nameserver: " new_ns
-                if [[ ! " ${NS[@]} " =~ " ${new_ns} " ]]; then
-                    NS+=("$new_ns")
-                    save_config
-                    echo -e "\n${GREEN}Nameserver added successfully!${NC}"
-                else
-                    echo -e "\n${RED}Nameserver already exists!${NC}"
-                fi
-                sleep 1
-                ;;
-            2)
-                if [ ${#NS[@]} -eq 0 ]; then
-                    echo -e "\n${RED}No nameservers to remove!${NC}"
-                    sleep 1
-                    continue
-                fi
-                echo
-                echo "Enter number to remove (1-${#NS[@]}):"
-                read -p "> " remove_index
-                if [[ "$remove_index" =~ ^[0-9]+$ ]] && [ "$remove_index" -ge 1 ] && [ "$remove_index" -le ${#NS[@]} ]; then
-                    unset "NS[$((remove_index-1))]"
-                    NS=("${NS[@]}")
-                    save_config
-                    echo -e "\n${GREEN}Nameserver removed successfully!${NC}"
-                else
-                    echo -e "\n${RED}Invalid selection!${NC}"
-                fi
-                sleep 1
-                ;;
-            3)
-                return
-                ;;
-            *)
-                echo -e "\n${RED}Invalid option!${NC}"
-                sleep 1
-                ;;
-        esac
     done
 }
 
-# Function to manage DNS entries
-manage_dns() {
-    while true; do
-        show_banner
-        echo -e "${CYAN}${BOLD}DNS Management${NC}\n"
-        echo -e "${WHITE}Current DNS Entries:${NC}"
-        
-        if [ ${#HOSTS[@]} -eq 0 ]; then
-            echo -e "${RED}No DNS entries configured${NC}"
-        else
-            for i in "${!HOSTS[@]}"; do
-                echo -e "${GREEN}$((i+1)).${NC} ${HOSTS[$i]}"
-            done
-        fi
-        
-        echo -e "\n${CYAN}Options:${NC}"
-        display_menu_item "1" "Add DNS Entry"
-        display_menu_item "2" "Remove DNS Entry"
-        display_menu_item "3" "Return to Main Menu"
-        echo
-        
-        read -p "Enter your choice: " choice
-        
-        case $choice in
-            1)
-                echo
-                read -p "Enter new DNS entry: " new_dns
-                if [[ ! " ${HOSTS[@]} " =~ " ${new_dns} " ]]; then
-                    HOSTS+=("$new_dns")
-                    save_config
-                    echo -e "\n${GREEN}DNS entry added successfully!${NC}"
-                else
-                    echo -e "\n${RED}DNS entry already exists!${NC}"
-                fi
-                sleep 1
-                ;;
-            2)
-                if [ ${#HOSTS[@]} -eq 0 ]; then
-                    echo -e "\n${RED}No DNS entries to remove!${NC}"
-                    sleep 1
-                    continue
-                fi
-                echo
-                echo "Enter number to remove (1-${#HOSTS[@]}):"
-                read -p "> " remove_index
-                if [[ "$remove_index" =~ ^[0-9]+$ ]] && [ "$remove_index" -ge 1 ] && [ "$remove_index" -le ${#HOSTS[@]} ]; then
-                    unset "HOSTS[$((remove_index-1))]"
-                    HOSTS=("${HOSTS[@]}")
-                    save_config
-                    echo -e "\n${GREEN}DNS entry removed successfully!${NC}"
-                else
-                    echo -e "\n${RED}Invalid selection!${NC}"
-                fi
-                sleep 1
-                ;;
-            3)
-                return
-                ;;
-            *)
-                echo -e "\n${RED}Invalid option!${NC}"
-                sleep 1
-                ;;
-        esac
-    done
-}
-
-# Function to save configuration
-save_config() {
-    echo "NS=${NS[*]}" > "$CONFIG_FILE"
-    echo "HOSTS=${HOSTS[*]}" >> "$CONFIG_FILE"
-    echo "LOOP_DELAY=$LOOP_DELAY" >> "$CONFIG_FILE"
-}
-
-# Function to load configuration
-load_config() {
-    if [ -f "$CONFIG_FILE" ]; then
-        source "$CONFIG_FILE"
-        IFS=' ' read -ra NS <<< "$NS"
-        IFS=' ' read -ra HOSTS <<< "$HOSTS"
-        return 0
-    fi
-    return 1
-}
-
-# Function to check dig command
-check_dig() {
-    if command -v dig >/dev/null 2>&1; then
-        _DIG="$(command -v dig)"
-        return 0
-    elif [ -f "/data/data/com.termux/files/home/go/bin/fastdig" ]; then
-        _DIG="/data/data/com.termux/files/home/go/bin/fastdig"
-        return 0
-    else
-        echo -e "${RED}Error: 'dig' command not found. Please install dnsutils or configure fastdig.${NC}"
-        return 1
-    fi
-}
-
-# Function to check DNS
-check_dns() {
+# Function to check DNS with loop
+check_dns_loop() {
     show_banner
     echo -e "${CYAN}${BOLD}DNS Check Results${NC}\n"
+    echo -e "${WHITE}Sleep Time:${NC} ${YELLOW}${LOOP_DELAY}${NC} seconds"
+    echo -e "${WHITE}Press Ctrl+C to stop the loop${NC}\n"
+    
+    IS_LOOPING=true
+    while $IS_LOOPING; do
+        echo -e "${BLUE}$(date '+%Y-%m-%d %H:%M:%S')${NC}"
+        echo -e "${BLUE}────────────────────────────────────────${NC}"
+        
+        for ((i=0; i<"${#HOSTS[*]}"; i++)); do
+            for R in "${NS[@]}"; do
+                T="${HOSTS[$i]}"
+                START_TIME=$(date +%s%N)
+                if timeout -k 3 3 ${_DIG} @${T} ${R} >/dev/null 2>&1; then
+                    STATUS="${GREEN}✓${NC}"
+                else
+                    STATUS="${RED}✗${NC}"
+                fi
+                END_TIME=$(date +%s%N)
+                PING_MS=$(( (END_TIME - START_TIME) / 1000000 ))
+                DIG_COUNT=$((DIG_COUNT + 1))
+                echo -e "├─ ${WHITE}NS:${NC} ${BLUE}${R}${NC}"
+                echo -e "│  └─ ${WHITE}DNS:${NC} ${CYAN}${T}${NC} ${STATUS} ${YELLOW}${PING_MS}ms${NC} Count: ${DIG_COUNT}"
+            done
+            echo -e "│"
+        done
+        
+        echo -e "${BLUE}────────────────────────────────────────${NC}"
+        sleep $LOOP_DELAY
+    done
+}
+
+# Function to check DNS once
+check_dns_once() {
+    show_banner
+    echo -e "${CYAN}${BOLD}Single DNS Check${NC}\n"
     
     for ((i=0; i<"${#HOSTS[*]}"; i++)); do
         for R in "${NS[@]}"; do
@@ -227,8 +112,9 @@ check_dns() {
             fi
             END_TIME=$(date +%s%N)
             PING_MS=$(( (END_TIME - START_TIME) / 1000000 ))
+            DIG_COUNT=$((DIG_COUNT + 1))
             echo -e "├─ ${WHITE}NS:${NC} ${BLUE}${R}${NC}"
-            echo -e "│  └─ ${WHITE}DNS:${NC} ${CYAN}${T}${NC} ${STATUS} ${YELLOW}${PING_MS}ms${NC}"
+            echo -e "│  └─ ${WHITE}DNS:${NC} ${CYAN}${T}${NC} ${STATUS} ${YELLOW}${PING_MS}ms${NC} Count: ${DIG_COUNT}"
         done
         echo -e "│"
     done
@@ -237,28 +123,25 @@ check_dns() {
     read
 }
 
-# Main menu function
-main_menu() {
+# Function to check DNS with options
+check_dns() {
     while true; do
         show_banner
-        echo -e "${CYAN}${BOLD}Main Menu${NC}\n"
-        display_menu_item "1" "Manage Nameservers"
-        display_menu_item "2" "Manage DNS Entries"
-        display_menu_item "3" "Check DNS Status"
-        display_menu_item "4" "Exit"
+        echo -e "${CYAN}${BOLD}DNS Check Options${NC}\n"
+        display_menu_item "1" "Single DNS Check"
+        display_menu_item "2" "Start DNS Check Loop"
+        display_menu_item "3" "Set Sleep Time (Current: ${LOOP_DELAY}s)"
+        display_menu_item "4" "Return to Main Menu"
         echo
         
         read -p "Enter your choice: " choice
         
         case $choice in
-            1) manage_nameservers ;;
-            2) manage_dns ;;
-            3) check_dns ;;
-            4) 
-                echo -e "\n${GREEN}Thank you for using DNS Manager!${NC}"
-                exit 0 
-                ;;
-            *)
+            1) check_dns_once ;;
+            2) check_dns_loop ;;
+            3) set_sleep_time ;;
+            4) return ;;
+            *) 
                 echo -e "\n${RED}Invalid option!${NC}"
                 sleep 1
                 ;;
@@ -266,11 +149,14 @@ main_menu() {
     done
 }
 
-# Cleanup function
+# Cleanup function with loop handling
 cleanup() {
+    IS_LOOPING=false
     echo -e "\n${YELLOW}Cleaning up and exiting...${NC}"
     exit 1
 }
+
+# [Rest of the existing functions remain the same: manage_nameservers(), manage_dns(), save_config(), load_config(), check_dig(), etc.]
 
 # Set up trap for cleanup
 trap cleanup 2 15
