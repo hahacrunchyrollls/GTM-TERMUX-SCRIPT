@@ -28,10 +28,10 @@ log() {
 # Function to clear screen and show banner
 show_banner() {
     clear
-    log "${BLUE}╔═════════════════════════════════════════╗${NC}"
-    log "${BLUE}║${CYAN}        TFN VPN DNS Script       ${BLUE}║${NC}"
-    log "${BLUE}║${CYAN}          Version: ${VER}        ${BLUE}║${NC}"
-    log "${BLUE}╚═════════════════════════════════════════╝${NC}"
+    log "${BLUE}═════════════════════════════════${NC}"
+    log "${CYAN}        TFN VPN DNS Script      ${NC}"
+    log "${CYAN}          Version: ${VER}       ${NC}"
+    log "${BLUE}══════════════════════════════════${NC}"
 }
 
 # Function to save configuration
@@ -58,12 +58,12 @@ dns_menu() {
     while true; do
         show_banner
         log "\n${CYAN}DNS Management Menu:${NC}"
-        log "${BLUE}╔════════════════════════╗${NC}"
-        log "${BLUE}║${NC} 1. Add DNS            ${BLUE}║${NC}"
-        log "${BLUE}║${NC} 2. Remove DNS         ${BLUE}║${NC}"
-        log "${BLUE}║${NC} 3. View Current DNS   ${BLUE}║${NC}"
-        log "${BLUE}║${NC} 4. Back to Main Menu  ${BLUE}║${NC}"
-        log "${BLUE}╚════════════════════════╝${NC}"
+        log "${BLUE}══════════════════════════════════${NC}"
+        log "${NC} 1. Add DNS            ${NC}"
+        log "${NC} 2. Remove DNS         ${NC}"
+        log "${NC} 3. View Current DNS   ${NC}"
+        log "${NC} 4. Back to Main Menu  ${NC}"
+        log "${BLUE}══════════════════════════════════${NC}"
         log ""
         read -p "Enter your choice (1-4): " choice
 
@@ -117,12 +117,12 @@ nameserver_menu() {
     while true; do
         show_banner
         log "\n${CYAN}Nameserver Management Menu:${NC}"
-        log "${BLUE}╔════════════════════════════╗${NC}"
-        log "${BLUE}║${NC} 1. Add NS         ${BLUE}║${NC}"
-        log "${BLUE}║${NC} 2. Remove NS      ${BLUE}║${NC}"
-        log "${BLUE}║${NC} 3. View Current NS${BLUE}║${NC}"
-        log "${BLUE}║${NC} 4. Back to Main Menu      ${BLUE}║${NC}"
-        log "${BLUE}╚════════════════════════════╝${NC}"
+        log "${BLUE}═════════════════════════════${NC}"
+        log "${NC} 1. Add NS         ${NC}"
+        log "${NC} 2. Remove NS      ${NC}"
+        log "${NC} 3. View Current NS ${NC}"
+        log "${NC} 4. Back to Main Menu      ${NC}"
+        log "${BLUE}═════════════════════════════${NC}"
         log ""
         read -p "Enter your choice (1-4): " choice
 
@@ -249,13 +249,13 @@ main_menu() {
     while true; do
         show_banner
         log "\n${CYAN}Main Menu:${NC}"
-        log "${BLUE}╔════════════════════════╗${NC}"
-        log "${BLUE}║${NC} 1. DNS Management      ${BLUE}║${NC}"
-        log "${BLUE}║${NC} 2. NS Management${BLUE}║${NC}"
-        log "${BLUE}║${NC} 3. Set Loop Delay      ${BLUE}║${NC}"
-        log "${BLUE}║${NC} 4. Start Digging       ${BLUE}║${NC}"
-        log "${BLUE}║${NC} 5. Exit                ${BLUE}║${NC}"
-        log "${BLUE}╚════════════════════════╝${NC}"
+        log "${BLUE}═══════════════════════════${NC}"
+        log "${NC} 1. DNS Management      ${BLUE}║${NC}"
+        log "${NC} 2. NS Management       ${BLUE}║${NC}"
+        log "${NC} 3. Set Loop Delay      ${BLUE}║${NC}"
+        log "${NC} 4. Start Digging       ${BLUE}║${NC}"
+        log "${NC} 5. Exit                ${BLUE}║${NC}"
+        log "${BLUE}═══════════════════════════${NC}"
         log ""
         read -p "Enter your choice (1-5): " choice
         
