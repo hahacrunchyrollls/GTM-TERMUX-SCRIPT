@@ -1,14 +1,13 @@
 #!/bin/bash
 # TFN VPN DNS Keep-Alive Script
 # Version 2.1
-# Enhanced with advanced menu interface and additional functionalities
+# Enhanced with advanced menu interface
 
 # Colors
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
-PURPLE='\033[0;35m'
 CYAN='\033[0;36m'
 NC='\033[0m' # No Color
 
@@ -119,7 +118,7 @@ remove_nameserver() {
     done
     
     read -p "Enter number to remove: " index
-    if [[ "$index" =~ ^[0-9]+$ ]] && [ "$index" -ge 1 ] && [ "$index -le "${#NS[@]}" ]]; then
+    if [[ "$index" =~ ^[0-9]+$ ]] && [ "$index" -ge 1 ] && [ "$index" -le "${#NS[@]}" ]; then
         removed_ns="${NS[$((index-1))]}"
         NS=("${NS[@]:0:$((index-1))}" "${NS[@]:$index}")
         save_config
@@ -211,15 +210,14 @@ set_loop_delay() {
 
 # Enhanced check_dns function without milliseconds display
 check_dns() {
-    for ((i=0; i<"${#HOSTS[*]}"; i++)); do
-        for R in "${NS[@]}"; do
-            T="${HOSTS[$i]}"
-            if timeout -k 3 3 ${_DIG} @${T} ${R} >/dev/null 2>&1; then
+    for host in "${HOSTS[@]}"; do
+        for ns in "${NS[@]}"; do
+            if timeout -k 3 3 "${_DIG}" @"${ns}" "${host}" >/dev/null 2>&1; then
                 STATUS="${GREEN}✓${NC}"
             else
                 STATUS="${RED}✗${NC}"
             fi
-            echo -e "║ NS:${BLUE}${R}${NC} DNS:${CYAN}${T}${NC} ${STATUS} Count:${DIG_COUNT} ║"
+            echo -e "║ NS:${BLUE}${ns}${NC} DNS:${CYAN}${host}${NC} ${STATUS} Count:${DIG_COUNT} ║"
             DIG_COUNT=$((DIG_COUNT + 1))
         done
     done
@@ -244,6 +242,7 @@ start_digging() {
         echo -e "${BLUE}╔════════════════════════════════════════════╗${NC}"
         check_dns
         echo -e "${BLUE}╚════════════════════════════════════════════╝${NC}"
+        
         if [ ${LOOP_DELAY} -gt 0 ]; then
             sleep ${LOOP_DELAY}
         fi
@@ -260,48 +259,19 @@ main_menu() {
         show_menu_item "2" "Nameserver Management"
         show_menu_item "3" "Set Loop Delay"
         show_menu_item "4" "Start Digging"
-        show_menu_item "5" "View Current Config"
-        show_menu_item "6" "Exit"
+        show_menu_item "5" "Exit"
         echo
-        read -p "Enter your choice (1-6): " choice
+        read -p "Enter your choice (1-5): " choice
         
         case $choice in
             1) dns_menu ;;
             2) nameserver_menu ;;
             3) set_loop_delay ;;
             4) start_digging ;;
-            5) view_current_config ;;
-            6) echo -e "\n${GREEN}Thank you for using TFN VPN Keep-Alive Tool!${NC}"; exit 0 ;;
+            5) echo -e "\n${GREEN}Thank you for using TFN VPN Keep-Alive Tool!${NC}"; exit 0 ;;
             *) echo -e "${RED}Invalid option. Please try again.${NC}"; sleep 1 ;;
         esac
     done
-}
-
-# Function to view current configuration
-view_current_config() {
-    show_banner
-    show_menu_header "Current Configuration"
-    
-    echo -e "${CYAN}DNS entries:${NC}"
-    if [ ${#HOSTS[@]} -eq 0 ]; then
-        echo -e "${YELLOW}No DNS entries configured${NC}"
-    else
-        for i in "${!HOSTS[@]}"; do
-            echo -e "$((i+1)). ${HOSTS[$i]}"
-        done
-    fi
-    
-    echo -e "\n${CYAN}Nameserver entries:${NC}"
-    if [ ${#NS[@]} -eq 0 ]; then
-        echo -e "${YELLOW}No nameserver entries configured${NC}"
-    else
-        for i in "${!NS[@]}"; do
-            echo -e "$((i+1)). ${NS[$i]}"
-        done
-    fi
-    
-    echo -e "\n${CYAN}Loop Delay:${NC} ${LOOP_DELAY} seconds"
-    read -n 1 -s -r -p "Press any key to continue..."
 }
 
 # Other functions remain the same (save_config, load_config, check_dig, cleanup)
