@@ -1,7 +1,7 @@
 #!/bin/bash
 # TFN VPN DNS Keep-Alive Script
-# Version 1.1
-# Enhanced with menu interface and additional features
+# Version 2.0
+# Enhanced with advanced features and improved UI
 
 # Colors
 RED='\033[0;31m'
@@ -10,49 +10,353 @@ YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 PURPLE='\033[0;35m'
 CYAN='\033[0;36m'
+WHITE='\033[1;37m'
 NC='\033[0m' # No Color
 
 # Global variables
-VER="1.1"
+VER="2.0"
 DIG_COUNT=0
 NS=()
 HOSTS=()
-NAMESERVERS=()  # Added: Array for nameservers
-DNS_TIMEOUT=3   # Added: DNS query timeout
 LOOP_DELAY=0
 CONFIG_FILE="$HOME/.tfn_vpn_config"
+LOG_FILE="$HOME/.tfn_vpn_logs"
+MAX_LOG_SIZE=$((10*1024*1024)) # 10MB
+NOTIFICATION_ENABLED=false
+STATS_ENABLED=true
+FAILED_THRESHOLD=3
+CONSECUTIVE_FAILURES=0
+AUTO_RECONNECT=false
+VPN_INTERFACE="tun0"
 
-# Function to clear screen and show banner
+# Function to rotate logs
+rotate_logs() {
+    if [ -f "$LOG_FILE" ]; then
+        local size=$(stat -f%z "$LOG_FILE" 2>/dev/null || stat -c%s "$LOG_FILE")
+        if [ "$size" -gt "$MAX_LOG_SIZE" ]; then
+            mv "$LOG_FILE" "${LOG_FILE}.old"
+            touch "$LOG_FILE"
+            echo -e "${YELLOW}Log file rotated${NC}"
+        fi
+    fi
+}
+
+# Function to log messages
+log_message() {
+    local timestamp=$(date "+%Y-%m-%d %H:%M:%S")
+    echo "[$timestamp] $1" >> "$LOG_FILE"
+    rotate_logs
+}
+
+# Function to show spinner
+show_spinner() {
+    local pid=$1
+    local delay=0.1
+    local spinstr='|/-\'
+    while ps -p $pid > /dev/null; do
+        local temp=${spinstr#?}
+        printf "\r[%c] Loading..." "$spinstr"
+        spinstr=$temp${spinstr%"$temp"}
+        sleep $delay
+    done
+    printf "\r\033[K"
+}
+
+# Enhanced banner with dynamic width
 show_banner() {
     clear
-    echo -e "${BLUE}════════════════════════════════════════════${NC}"
-    echo -e "${CYAN}           TFN VPN Keep-Alive Tool          ${NC}"
-    echo -e "${CYAN}             Version: ${VER}                ${NC}"
-    echo -e "${BLUE}════════════════════════════════════════════${NC}"
+    local term_width=$(tput cols)
+    local banner_width=$((term_width - 4))
+    local line=$(printf '═%.0s' $(seq 1 $banner_width))
+    
+    echo -e "${BLUE}$line${NC}"
+    printf "${CYAN}%*s${NC}\n" $(((${#"TFN VPN Keep-Alive Tool"}+term_width)/2)) "TFN VPN Keep-Alive Tool"
+    printf "${CYAN}%*s${NC}\n" $(((${#"Version: $VER"}+term_width)/2)) "Version: $VER"
+    echo -e "${BLUE}$line${NC}"
 }
 
-# Function to save configuration
+# Enhanced configuration save
 save_config() {
-    echo "NS=${NS[*]}" > "$CONFIG_FILE"
-    echo "HOSTS=${HOSTS[*]}" >> "$CONFIG_FILE"
-    echo "NAMESERVERS=${NAMESERVERS[*]}" >> "$CONFIG_FILE"  # Added: Save nameservers
-    echo "LOOP_DELAY=$LOOP_DELAY" >> "$CONFIG_FILE"
-    echo "DNS_TIMEOUT=$DNS_TIMEOUT" >> "$CONFIG_FILE"  # Added: Save DNS timeout
+    cat > "$CONFIG_FILE" << EOF
+NS=${NS[*]}
+HOSTS=${HOSTS[*]}
+LOOP_DELAY=$LOOP_DELAY
+NOTIFICATION_ENABLED=$NOTIFICATION_ENABLED
+STATS_ENABLED=$STATS_ENABLED
+AUTO_RECONNECT=$AUTO_RECONNECT
+VPN_INTERFACE=$VPN_INTERFACE
+FAILED_THRESHOLD=$FAILED_THRESHOLD
+EOF
 }
 
-# Function to load configuration
+# Enhanced configuration load
 load_config() {
     if [ -f "$CONFIG_FILE" ]; then
         source "$CONFIG_FILE"
         IFS=' ' read -ra NS <<< "$NS"
         IFS=' ' read -ra HOSTS <<< "$HOSTS"
-        IFS=' ' read -ra NAMESERVERS <<< "$NAMESERVERS"  # Added: Load nameservers
         return 0
     fi
     return 1
 }
 
-# Function to check dig command
+# Function to check VPN status
+check_vpn_status() {
+    if ip link show "$VPN_INTERFACE" &>/dev/null; then
+        return 0
+    fi
+    return 1
+}
+
+# Function to reconnect VPN
+reconnect_vpn() {
+    if [ "$AUTO_RECONNECT" = true ]; then
+        echo -e "${YELLOW}Attempting to reconnect VPN...${NC}"
+        # Add your VPN reconnection command here
+        # Example: systemctl restart openvpn@config
+        sleep 5
+        if check_vpn_status; then
+            echo -e "${GREEN}VPN reconnected successfully${NC}"
+            log_message "VPN reconnected successfully"
+        else
+            echo -e "${RED}VPN reconnection failed${NC}"
+            log_message "VPN reconnection failed"
+        fi
+    fi
+}
+
+# Enhanced DNS check with statistics
+check_dns() {
+    local success_count=0
+    local total_latency=0
+    
+    for ((i=0; i<"${#HOSTS[*]}"; i++)); do
+        for R in "${NS[@]}"; do
+            T="${HOSTS[$i]}"
+            START_TIME=$(date +%s%N)
+            
+            if timeout -k 3 3 ${_DIG} @${T} ${R} >/dev/null 2>&1; then
+                STATUS="${GREEN}SUCCESS${NC}"
+                ((success_count++))
+                CONSECUTIVE_FAILURES=0
+            else
+                STATUS="${RED}FAILED${NC}"
+                ((CONSECUTIVE_FAILURES++))
+            fi
+            
+            END_TIME=$(date +%s%N)
+            PING_MS=$(( (END_TIME - START_TIME) / 1000000 ))
+            total_latency=$((total_latency + PING_MS))
+            
+            echo -e "NS:${BLUE}${R}${NC} DNS:${CYAN}${T}${NC} Status:${STATUS} ${YELLOW}${PING_MS}ms${NC} Count:${DIG_COUNT}"
+            log_message "NS:${R} DNS:${T} Status:${STATUS//\033[0;3?m/} Latency:${PING_MS}ms Count:${DIG_COUNT}"
+            
+            DIG_COUNT=$((DIG_COUNT + 1))
+        done
+    done
+    
+    if [ "$STATS_ENABLED" = true ]; then
+        local total_queries=$((${#HOSTS[*]} * ${#NS[*]}))
+        local success_rate=$((success_count * 100 / total_queries))
+        local avg_latency=$((total_latency / total_queries))
+        echo -e "\n${PURPLE}Statistics:${NC}"
+        echo -e "Success Rate: ${GREEN}${success_rate}%${NC}"
+        echo -e "Average Latency: ${YELLOW}${avg_latency}ms${NC}"
+    fi
+    
+    if [ $CONSECUTIVE_FAILURES -ge $FAILED_THRESHOLD ]; then
+        echo -e "${RED}Warning: Multiple consecutive failures detected!${NC}"
+        log_message "Warning: Multiple consecutive failures detected!"
+        if [ "$NOTIFICATION_ENABLED" = true ]; then
+            notify-send "TFN VPN Monitor" "Multiple DNS query failures detected!"
+        fi
+        reconnect_vpn
+    fi
+}
+
+# Enhanced settings configuration
+configure_settings() {
+    local temp_ns
+    local temp_hosts
+    
+    show_banner
+    echo -e "\n${YELLOW}Configuration Menu:${NC}"
+    echo -e "1. Configure NS and DNS Settings"
+    echo -e "2. Configure Monitoring Settings"
+    echo -e "3. Configure Notifications"
+    echo -e "4. Configure VPN Settings"
+    echo -e "5. Back to Main Menu"
+    
+    read -p "Enter your choice (1-5): " config_choice
+    
+    case $config_choice in
+        1)
+            echo -e "\n${CYAN}Current NS and DNS Settings:${NC}"
+            echo -e "NS Servers: ${NS[*]:-None}"
+            echo -e "DNS Hosts: ${HOSTS[*]:-None}"
+            read -p "Enter custom NS separated by spaces: " temp_ns
+            read -p "Enter custom DNS separated by spaces: " temp_hosts
+            [ ! -z "$temp_ns" ] && IFS=' ' read -ra NS <<< "$temp_ns"
+            [ ! -z "$temp_hosts" ] && IFS=' ' read -ra HOSTS <<< "$temp_hosts"
+            ;;
+        2)
+            echo -e "\n${CYAN}Monitoring Settings:${NC}"
+            read -p "Enter loop delay (0-5 seconds): " LOOP_DELAY
+            read -p "Enable statistics? (y/n): " stats_choice
+            [[ $stats_choice =~ ^[Yy]$ ]] && STATS_ENABLED=true || STATS_ENABLED=false
+            read -p "Enter failed threshold (1-10): " FAILED_THRESHOLD
+            ;;
+        3)
+            echo -e "\n${CYAN}Notification Settings:${NC}"
+            read -p "Enable notifications? (y/n): " notif_choice
+            [[ $notif_choice =~ ^[Yy]$ ]] && NOTIFICATION_ENABLED=true || NOTIFICATION_ENABLED=false
+            ;;
+        4)
+            echo -e "\n${CYAN}VPN Settings:${NC}"
+            read -p "Enable auto-reconnect? (y/n): " reconnect_choice
+            [[ $reconnect_choice =~ ^[Yy]$ ]] && AUTO_RECONNECT=true || AUTO_RECONNECT=false
+            read -p "Enter VPN interface name: " VPN_INTERFACE
+            ;;
+        5)
+            return
+            ;;
+        *)
+            echo -e "${RED}Invalid option${NC}"
+            sleep 1
+            return
+            ;;
+    esac
+    
+    save_config
+    echo -e "${GREEN}Configuration saved successfully!${NC}"
+    sleep 2
+}
+
+# Enhanced monitoring start
+start_monitoring() {
+    if [ ${#NS[@]} -eq 0 ] || [ ${#HOSTS[@]} -eq 0 ]; then
+        echo -e "${RED}Error: Please configure NS and DNS settings first.${NC}"
+        log_message "Error: Missing NS or DNS configuration"
+        sleep 2
+        return
+    fi
+    
+    clear
+    echo -e "${YELLOW}Monitoring Started${NC}"
+    echo -e "${CYAN}DNS List:${NC} ${HOSTS[*]}"
+    echo -e "${CYAN}NS List:${NC} ${NS[*]}"
+    echo -e "${CYAN}Loop Delay:${NC} ${LOOP_DELAY} seconds"
+    echo -e "${CYAN}VPN Interface:${NC} ${VPN_INTERFACE}"
+    echo -e "\n${YELLOW}Press Ctrl+C to stop monitoring${NC}\n"
+    
+    log_message "Monitoring started with ${#HOSTS[@]} DNS hosts and ${#NS[@]} NS servers"
+    
+    while true; do
+        if ! check_vpn_status; then
+            echo -e "${RED}VPN connection lost!${NC}"
+            log_message "VPN connection lost"
+            reconnect_vpn
+        fi
+        
+        check_dns
+        echo -e "${BLUE}────────────────────────────────────────${NC}"
+        [ ${LOOP_DELAY} -gt 0 ] && sleep ${LOOP_DELAY}
+    done
+}
+
+# Enhanced help menu
+show_help() {
+    show_banner
+    echo -e "\n${CYAN}Help Information:${NC}"
+    echo -e "${YELLOW}1. Configure Settings${NC}"
+    echo "   - Set up NS servers and DNS hosts"
+    echo "   - Configure monitoring parameters"
+    echo "   - Enable/disable notifications"
+    echo "   - Configure VPN settings"
+    echo
+    echo -e "${YELLOW}2. Start Monitoring${NC}"
+    echo "   - Monitor DNS queries in real-time"
+    echo "   - View success rates and latency"
+    echo "   - Automatic VPN monitoring"
+    echo
+    echo -e "${YELLOW}3. View Statistics${NC}"
+    echo "   - Success rate monitoring"
+    echo "   - Latency tracking"
+    echo "   - Failure detection"
+    echo
+    echo -e "${YELLOW}4. Logs${NC}"
+    echo "   - View detailed logs"
+    echo "   - Automatic log rotation"
+    echo
+    read -n 1 -s -r -p "Press any key to continue..."
+}
+
+# Enhanced view stats
+view_stats() {
+    if [ -f "$LOG_FILE" ]; then
+        echo -e "\n${CYAN}Recent Statistics:${NC}"
+        echo -e "${YELLOW}Last 10 Events:${NC}"
+        tail -n 10 "$LOG_FILE"
+        echo
+        echo -e "${YELLOW}Summary:${NC}"
+        echo "Total Queries: $DIG_COUNT"
+        echo "Failed Threshold: $FAILED_THRESHOLD"
+        echo "Current Consecutive Failures: $CONSECUTIVE_FAILURES"
+        echo
+    else
+        echo -e "${RED}No logs available${NC}"
+    fi
+    read -n 1 -s -r -p "Press any key to continue..."
+}
+
+# Enhanced main menu
+main_menu() {
+    local choice
+    while true; do
+        show_banner
+        echo -e "\n${CYAN}Main Menu:${NC}"
+        echo "1. Configure Settings"
+        echo "2. Start Monitoring"
+        echo "3. View Statistics"
+        echo "4. View Logs"
+        echo "5. Help"
+        echo "6. Exit"
+        echo
+        read -p "Enter your choice (1-6): " choice
+        
+        case $choice in
+            1) configure_settings ;;
+            2) start_monitoring ;;
+            3) view_stats ;;
+            4) less "$LOG_FILE" 2>/dev/null || echo -e "${RED}No logs available${NC}" ;;
+            5) show_help ;;
+            6) 
+                echo -e "\n${GREEN}Thank you for using TFN VPN Keep-Alive Tool!${NC}"
+                log_message "Application terminated normally"
+                exit 0 
+                ;;
+            *) echo -e "${RED}Invalid option. Please try again.${NC}"; sleep 1 ;;
+        esac
+    done
+}
+
+# Enhanced cleanup function
+cleanup() {
+    echo -e "\n${YELLOW}Cleaning up and exiting...${NC}"
+    log_message "Application terminated by user"
+    exit 1
+}
+
+# Set up trap for cleanup
+trap cleanup 2 15
+
+# Initialize logging
+touch "$LOG_FILE" 2>/dev/null || {
+    echo -e "${RED}Error: Cannot create log file${NC}"
+    exit 1
+}
+
+# Check for required commands
 check_dig() {
     if command -v dig >/dev/null 2>&1; then
         _DIG="$(command -v dig)"
@@ -66,205 +370,10 @@ check_dig() {
     fi
 }
 
-# Added: Function to validate nameserver
-validate_nameserver() {
-    local ns=$1
-    if [[ $ns =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-        return 0
-    else
-        return 1
-    fi
-}
-
-# Function to configure settings
-configure_settings() {
-    local temp_ns
-    local temp_hosts
-    local temp_nameservers
-    
-    echo -e "\n${YELLOW}Current Configuration:${NC}"
-    echo -e "${CYAN}NS Servers:${NC} ${NS[*]:-None}"
-    echo -e "${CYAN}DNS Hosts:${NC} ${HOSTS[*]:-None}"
-    echo -e "${CYAN}Nameservers:${NC} ${NAMESERVERS[*]:-None}"
-    echo -e "${CYAN}Loop Delay:${NC} ${LOOP_DELAY} seconds"
-    echo -e "${CYAN}DNS Timeout:${NC} ${DNS_TIMEOUT} seconds\n"
-    
-    read -p "Enter custom NS separated by spaces: " temp_ns
-    read -p "Enter custom DNS separated by spaces: " temp_hosts
-    read -p "Enter nameservers (IP addresses) separated by spaces: " temp_nameservers
-    
-    while true; do
-        read -p "Enter loop delay (0-5 seconds): " LOOP_DELAY
-        if [[ ${LOOP_DELAY} =~ ^[0-5]$ ]]; then
-            break
-        else
-            echo -e "${RED}Invalid input. Please enter a number between 0 and 5.${NC}"
-        fi
-    done
-
-    while true; do
-        read -p "Enter DNS query timeout (1-10 seconds): " DNS_TIMEOUT
-        if [[ ${DNS_TIMEOUT} =~ ^[1-9]$|^10$ ]]; then
-            break
-        else
-            echo -e "${RED}Invalid input. Please enter a number between 1 and 10.${NC}"
-        fi
-    done
-
-    if [ ! -z "$temp_ns" ]; then
-        IFS=' ' read -ra NS <<< "$temp_ns"
-    fi
-    if [ ! -z "$temp_hosts" ]; then
-        IFS=' ' read -ra HOSTS <<< "$temp_hosts"
-    fi
-    
-    # Added: Validate and add nameservers
-    if [ ! -z "$temp_nameservers" ]; then
-        NAMESERVERS=()
-        for ns in $temp_nameservers; do
-            if validate_nameserver "$ns"; then
-                NAMESERVERS+=("$ns")
-            else
-                echo -e "${RED}Invalid nameserver IP: $ns${NC}"
-            fi
-        done
-    fi
-    
-    save_config
-    echo -e "${GREEN}Configuration saved successfully!${NC}"
-    sleep 2
-}
-
-# Function to check DNS
-check_dns() {
-    local current_time=$(date "+%Y-%m-%d %H:%M:%S")
-    echo -e "${PURPLE}Time: $current_time${NC}"
-    
-    # Check normal DNS queries
-    for ((i=0; i<"${#HOSTS[*]}"; i++)); do
-        for R in "${NS[@]}"; do
-            T="${HOSTS[$i]}"
-            START_TIME=$(date +%s%N)
-            if timeout -k $DNS_TIMEOUT $DNS_TIMEOUT ${_DIG} @${T} ${R} >/dev/null 2>&1; then
-                STATUS="${GREEN}SUCCESS${NC}"
-            else
-                STATUS="${RED}FAILED${NC}"
-            fi
-            END_TIME=$(date +%s%N)
-            PING_MS=$(( (END_TIME - START_TIME) / 1000000 ))
-            echo -e "NS:${BLUE}${R}${NC} DNS:${CYAN}${T}${NC} Status:${STATUS} ${YELLOW}${PING_MS}ms${NC} Count:${DIG_COUNT}"
-            DIG_COUNT=$((DIG_COUNT + 1))
-        done
-    done
-    
-    # Added: Check nameserver queries
-    if [ ${#NAMESERVERS[@]} -gt 0 ]; then
-        echo -e "\n${CYAN}Nameserver Checks:${NC}"
-        for ns in "${NAMESERVERS[@]}"; do
-            START_TIME=$(date +%s%N)
-            if timeout -k $DNS_TIMEOUT $DNS_TIMEOUT ${_DIG} @${ns} google.com >/dev/null 2>&1; then
-                STATUS="${GREEN}SUCCESS${NC}"
-            else
-                STATUS="${RED}FAILED${NC}"
-            fi
-            END_TIME=$(date +%s%N)
-            PING_MS=$(( (END_TIME - START_TIME) / 1000000 ))
-            echo -e "Nameserver:${BLUE}${ns}${NC} Status:${STATUS} ${YELLOW}${PING_MS}ms${NC}"
-        done
-    fi
-}
-
-# Function to start monitoring
-start_monitoring() {
-    if [ ${#NS[@]} -eq 0 ] || [ ${#HOSTS[@]} -eq 0 ]; then
-        echo -e "${RED}Error: Please configure NS and DNS settings first.${NC}"
-        sleep 2
-        return
-    fi
-    
-    clear
-    echo -e "${YELLOW}Monitoring Started${NC}"
-    echo -e "${CYAN}DNS List:${NC} ${HOSTS[*]}"
-    echo -e "${CYAN}NS List:${NC} ${NS[*]}"
-    echo -e "${CYAN}Nameservers:${NC} ${NAMESERVERS[*]}"
-    echo -e "${CYAN}Loop Delay:${NC} ${LOOP_DELAY} seconds"
-    echo -e "${CYAN}DNS Timeout:${NC} ${DNS_TIMEOUT} seconds"
-    echo -e "\n${YELLOW}Press Ctrl+C to stop monitoring${NC}\n"
-    
-    while true; do
-        check_dns
-        echo -e "${BLUE}────────────────────────────────────────${NC}"
-        if [ ${LOOP_DELAY} -gt 0 ]; then
-            sleep ${LOOP_DELAY}
-        fi
-    done
-}
-
-# Function to show help
-show_help() {
-    echo -e "\n${CYAN}Help Information:${NC}"
-    echo -e "${YELLOW}1. Configure Settings${NC}"
-    echo "   Set up your NS servers, DNS hosts, nameservers, and delays"
-    echo -e "${YELLOW}2. Start Monitoring${NC}"
-    echo "   Begin DNS query monitoring with current settings"
-    echo -e "${YELLOW}3. View Current Config${NC}"
-    echo "   Display current configuration settings"
-    echo -e "${YELLOW}4. Help${NC}"
-    echo "   Show this help information"
-    echo -e "${YELLOW}5. Exit${NC}"
-    echo "   Exit the program"
-    echo
-    read -n 1 -s -r -p "Press any key to continue..."
-}
-
-# Function to view current config
-view_config() {
-    echo -e "\n${CYAN}Current Configuration:${NC}"
-    echo -e "${YELLOW}NS Servers:${NC} ${NS[*]:-None}"
-    echo -e "${YELLOW}DNS Hosts:${NC} ${HOSTS[*]:-None}"
-    echo -e "${YELLOW}Nameservers:${NC} ${NAMESERVERS[*]:-None}"
-    echo -e "${YELLOW}Loop Delay:${NC} ${LOOP_DELAY} seconds"
-    echo -e "${YELLOW}DNS Timeout:${NC} ${DNS_TIMEOUT} seconds\n"
-    read -n 1 -s -r -p "Press any key to continue..."
-}
-
-# Main menu function
-main_menu() {
-    local choice
-    while true; do
-        show_banner
-        echo -e "\n${CYAN}Main Menu:${NC}"
-        echo "1. Configure Settings"
-        echo "2. Start Monitoring"
-        echo "3. View Current Config"
-        echo "4. Help"
-        echo "5. Exit"
-        echo
-        read -p "Enter your choice (1-5): " choice
-        
-        case $choice in
-            1) configure_settings ;;
-            2) start_monitoring ;;
-            3) view_config ;;
-            4) show_help ;;
-            5) echo -e "\n${GREEN}Thank you for using TFN VPN Keep-Alive Tool!${NC}"; exit 0 ;;
-            *) echo -e "${RED}Invalid option. Please try again.${NC}"; sleep 1 ;;
-        esac
-    done
-}
-
-# Cleanup function
-cleanup() {
-    echo -e "\n${YELLOW}Cleaning up and exiting...${NC}"
-    exit 1
-}
-
-# Set up trap for cleanup
-trap cleanup 2 15
-
 # Initial setup
 check_dig || exit 1
 load_config
+log_message "Application started - Version $VER"
 
 # Start the program
 main_menu
