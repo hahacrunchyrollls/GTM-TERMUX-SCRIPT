@@ -209,9 +209,9 @@ check_dns() {
         for R in "${NS[@]}"; do
             T="${HOSTS[$i]}"
             if timeout -k 3 3 ${_DIG} @${T} ${R} >/dev/null 2>&1; then
-                STATUS="${GREEN}SUCCESS${NC}"
+                STATUS="${GREEN}✔${NC}"
             else
-                STATUS="${RED}FAILED${NC}"
+                STATUS="${RED}✘${NC}"
             fi
             log "NS: ${BLUE}${R}${NC}\nDNS: ${CYAN}${T}${NC}\nSTATUS: ${STATUS}\nCount: ${DIG_COUNT}"
             DIG_COUNT=$((DIG_COUNT + 1))
