@@ -349,8 +349,8 @@ EOF
         echo "${SUBDOMAIN}.${DOMAIN_NAME}" > /etc/dnsinfo/a-name
         wget -qO /etc/dnsinfo/dnstt-server https://github.com/yakult13/parte/raw/main/dnstt-server
         chmod +x /etc/dnsinfo/dnstt-server
-        echo "1c30354d07141b54ff865c365c27b5cfa4d4b0c61b61d2dec5f2e58975e7d981" > /etc/dnsinfo/server.key
-        echo "7078e879c55e69af888ea9a94e07f92cf49f380f942b3dd91a3d9d09fbd3ce0f" > /etc/dnsinfo/server.pub
+        echo "102ba9b614ef273c96481f727e862b49cb39603be4917b84b0889f3ab96acee8" > /etc/dnsinfo/server.key
+        echo "8772bac0f2f395a6897da6845bdd21c432e07572dcc55fef5091f08c896b833d" > /etc/dnsinfo/server.pub
         echo "ns.${SUBDOMAIN}.${DOMAIN_NAME}" > /etc/dnsinfo/nameserver
         echo "Both A and NS records successfully added."
         echo "[Unit]
