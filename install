@@ -7,7 +7,7 @@ rm -rf install
 apt-get update -y
 apt-get install -y dnsutils nano
 
-wget https://raw.githubusercontent.com/hahacrunchyrollls/GTM-TERMUX-SCRIPT/refs/heads/main/gtm; chmod +x gtm && mv gtm /data/data/com.termux/files/usr/bin
+wget https://raw.githubusercontent.com/hahacrunchyrollls/GTM-TERMUX-SCRIPT/refs/heads/main/tfn; chmod +x tfn && mv tfn /data/data/com.termux/files/usr/bin
 echo "Installation Completed."
 echo
 echo "TFN SCRIPT"
