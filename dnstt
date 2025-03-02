@@ -361,12 +361,12 @@ Wants=network-online.target
 [Service]
 Type=simple
 WorkingDirectory=/etc/dnsinfo
-ExecStart=/etc/dnsinfo/dnstt-server -udp :5300 -privkey-file server.key ns.${SUBDOMAIN}.${DOMAIN_NAME} 127.0.0.1:22
+ExecStart=/etc/dnsinfo/dnstt-server -udp :5300 -privkey-file /etc/dnsinfo/server.key ns.${SUBDOMAIN}.${DOMAIN_NAME} 127.0.0.1:22
 Restart=on-failure
 RestartSec=5s
 ExecReload=/bin/kill -HUP \$MAINPID
 ExecStop=/bin/kill -s QUIT \$MAINPID
-StandardOutput=file:/etc/dnsinfo/status.log
+StandardOutput=append:/etc/dnsinfo/status.log
 
 [Install]
 WantedBy=multi-user.target
@@ -504,22 +504,15 @@ timedatectl set-timezone Asia/Manila
 echo "0 8 * * * root /sbin/reboot" | tee -a /etc/cron.d/reboot_at_8am 
 
 echo "[Unit]
-Description=Timer for Check Script Service
-
-[Timer]
-OnUnitActiveSec=15s
-Unit=check.service
-
-[Install]
-WantedBy=timers.target" > /etc/systemd/system/check.timer
-
-echo "[Unit]
 Description=Check Script Service
-After=network.target
+After=network-online.target
+Wants=network-online.target
 
 [Service]
 Type=simple
 ExecStart=/bin/bash /etc/python3/check.sh
+Restart=on-failure
+RestartSec=10s
 
 [Install]
 WantedBy=multi-user.target
