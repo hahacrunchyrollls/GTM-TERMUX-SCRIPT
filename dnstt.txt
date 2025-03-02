@@ -1,0 +1,534 @@
+#!/bin/bash
+export DEBIAN_FRONTEND=noninteractive
+
+apt update
+apt upgrade -y
+apt install gnupg -y
+. /etc/os-release
+NAME=$VERSION_CODENAME
+if [ -z "$NAME" ]; then
+    NAME=$(echo "$VERSION" | sed -rn 's|.+((.+)).+|\1|p')
+fi
+echo "deb http://build.openvpn.net/debian/openvpn/stable $NAME main" >/etc/apt/sources.list.d/openvpn.list
+wget -O - https://swupdate.openvpn.net/repos/repo-public.gpg | apt-key add -
+apt-get update
+
+apt install openvpn -y
+
+apt install screenfetch -y
+rm -rf /etc/openvpn/*
+
+sed -i '/net.ipv4.ip_forward.*/d' /etc/sysctl.conf
+echo 'net.ipv4.ip_forward=1' > /etc/sysctl.d/20-openvpn.conf
+sysctl --system &> /dev/null
+echo 1 > /proc/sys/net/ipv4/ip_forward
+
+mkdir /etc/openvpn/certificates
+
+cat <<'CA-CART' > /etc/openvpn/certificates/ca.crt
+-----BEGIN CERTIFICATE-----
+MIID0jCCAzugAwIBAgIUXRi/kQI5IvWJ8qqvILNGzirVrwowDQYJKoZIhvcNAQEL
+BQAwgZYxCzAJBgNVBAYTAlBIMQwwCgYDVQQIDANOQ1IxDzANBgNVBAcMBk1hbmls
+YTETMBEGA1UECgwKSnVhblNjcmlwdDETMBEGA1UECwwKSnVhblNjcmlwdDETMBEG
+A1UEAwwKSnVhblNjcmlwdDEpMCcGCSqGSIb3DQEJARYaaW5mby5mcmVlbmV0Y2Fm
+ZUBnbWFpbC5jb20wIBcNMjQwNDI0MDUzMjAzWhgPMjA1MTA5MDkwNTMyMDNaMIGW
+MQswCQYDVQQGEwJQSDEMMAoGA1UECAwDTkNSMQ8wDQYDVQQHDAZNYW5pbGExEzAR
+BgNVBAoMCkp1YW5TY3JpcHQxEzARBgNVBAsMCkp1YW5TY3JpcHQxEzARBgNVBAMM
+Ckp1YW5TY3JpcHQxKTAnBgkqhkiG9w0BCQEWGmluZm8uZnJlZW5ldGNhZmVAZ21h
+aWwuY29tMIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQCYZPP8u/nlwcst80op
+nmB9M4lWPmw7Sym/jwCyHxobjyq95G5Mc84aF7mPuiAXCSvhzhcbxfAhXzOE0ps3
+GImnEL7qnUMX4Tcs/Bj2qC5np06FbHvIea4rwte/VoqT/fkVMXyGgwnDQVo5LWJf
+/S/CW42R9LztChGTXhaEQN44NwIDAQABo4IBFzCCARMwDAYDVR0TBAUwAwEB/zAd
+BgNVHQ4EFgQUi3mFqH7pk6XyMjbUzTPifrtOtNEwgdYGA1UdIwSBzjCBy4AUi3mF
+qH7pk6XyMjbUzTPifrtOtNGhgZykgZkwgZYxCzAJBgNVBAYTAlBIMQwwCgYDVQQI
+DANOQ1IxDzANBgNVBAcMBk1hbmlsYTETMBEGA1UECgwKSnVhblNjcmlwdDETMBEG
+A1UECwwKSnVhblNjcmlwdDETMBEGA1UEAwwKSnVhblNjcmlwdDEpMCcGCSqGSIb3
+DQEJARYaaW5mby5mcmVlbmV0Y2FmZUBnbWFpbC5jb22CFF0Yv5ECOSL1ifKqryCz
+Rs4q1a8KMAsGA1UdDwQEAwIBBjANBgkqhkiG9w0BAQsFAAOBgQBGscRIi7R5uwI2
+lGXfMgtI5JufUuZJqbpL//4QPCwWvDZRNKqGaj/ByGU2nOx2+P+bYVEWEFeJZUK3
+gtcaKz5Rm2XcPpIltxGDLumg8r9mgSf1/2j/uNPvACJiwpys0EQwgBUIcNdoa9Je
+W2K6W37BKNNPj+wPS5qasva/joR4MQ==
+-----END CERTIFICATE-----
+CA-CART
+
+cat <<'CA-key' > /etc/openvpn/certificates/ca.key
+-----BEGIN PRIVATE KEY-----
+MIICdgIBADANBgkqhkiG9w0BAQEFAASCAmAwggJcAgEAAoGBAJhk8/y7+eXByy3z
+SimeYH0ziVY+bDtLKb+PALIfGhuPKr3kbkxzzhoXuY+6IBcJK+HOFxvF8CFfM4TS
+mzcYiacQvuqdQxfhNyz8GPaoLmenToVse8h5rivC179WipP9+RUxfIaDCcNBWjkt
+Yl/9L8JbjZH0vO0KEZNeFoRA3jg3AgMBAAECgYAsmhdi1+1q1k5OE4+YILdizWub
+p0dsDzKX0xXEDCBLApri2vGBRL+EmX8A1tu/gjqqqvPOeB8w1Tkx3aX5+R+IJ1i/
+E0H8Q0Bq20Li7IztjgpAD1nTJUhjgXpEFIyTPyO1RVUt1TPox+81HRoCJAOoV0kE
+PFvQuiiTG3DGfojSiQJBAMgiMF5PtSZ0jYTco5Mdq30/tuc1KkWhULN+bb040pG5
+e4i1aw6iQ1M9dZhWA76ezjUZVLAS+OEdW+F56rg6VEsCQQDC70HEQVKQTyWu0Gbl
+ZLya6zXNLNo/eyeCvwMOli+dni6DQS+TgVNT/JW4KVGv3iHL0Bwmg2vP43Mvhg7t
+AIBFAkAzLYL+6xUg41c5LY7q1QCAg+WK1G6d5bWUYPVBGSHHwA3WFMZutJHQ3HuQ
+3BYTDdsfev3MFN3t+yr+ysV6HPhnAkEAqKTJJvrEbSisFzMg8fBW40f+QcU+A5GO
+OyT5hhMUmq4Q22j3ugs2hgCNnsfQbfAlGOiwkfk8upuyOTknjI7UaQJAEz1EOfaT
+F20BDBliCPK8qTa0Uf/Plw9hMkrTNfnCop6caonfbtV0HIqi8l15HyxnrbElEZiI
+Rb3HzYF1TG0AHw==
+-----END PRIVATE KEY-----
+CA-key
+
+cat <<'Server-crt' > /etc/openvpn/certificates/IZPH.crt
+Certificate:
+    Data:
+        Version: 3 (0x2)
+        Serial Number:
+            1d:c5:9e:61:a0:55:fa:bb:2c:0a:d8:d8:7d:89:3c:bc
+        Signature Algorithm: sha256WithRSAEncryption
+        Issuer: C=PH, ST=NCR, L=Manila, O=JuanScript, OU=JuanScript, CN=JuanScript/emailAddress=info.freenetcafe@gmail.com
+        Validity
+            Not Before: Apr 24 05:34:14 2024 GMT
+            Not After : Sep  9 05:34:14 2051 GMT
+        Subject: C=PH, ST=NCR, L=Manila, O=JuanScript, OU=JuanScript, CN=IZPH-VPN/emailAddress=info.freenetcafe@gmail.com
+        Subject Public Key Info:
+            Public Key Algorithm: rsaEncryption
+                Public-Key: (1024 bit)
+                Modulus:
+                    00:f8:26:6d:0b:d9:9d:98:99:de:7a:8e:25:53:18:
+                    4a:5b:b4:8c:6f:1a:e2:60:07:b7:00:d3:7c:bf:17:
+                    44:87:cb:a4:d2:44:d0:72:91:05:17:8f:32:52:82:
+                    41:f2:d4:a1:c5:e9:1b:ea:c6:5b:f5:3f:59:43:cc:
+                    71:29:db:2d:37:c1:da:61:56:ee:df:c4:28:d3:2e:
+                    55:49:5c:63:e7:bd:eb:3a:fb:98:f0:d2:c0:65:5c:
+                    08:ad:a1:fb:c4:b6:5f:de:4b:cf:0b:c3:ee:ba:2c:
+                    88:4a:71:f9:f1:d6:90:5a:a6:59:49:ff:d4:cf:ec:
+                    69:43:0f:3b:41:22:68:64:fb
+                Exponent: 65537 (0x10001)
+        X509v3 extensions:
+            X509v3 Basic Constraints: 
+                CA:FALSE
+            X509v3 Subject Key Identifier: 
+                99:66:76:16:FC:39:0A:5A:0E:5B:45:88:28:7F:21:72:24:A7:17:55
+            X509v3 Authority Key Identifier: 
+                keyid:8B:79:85:A8:7E:E9:93:A5:F2:32:36:D4:CD:33:E2:7E:BB:4E:B4:D1
+                DirName:/C=PH/ST=NCR/L=Manila/O=JuanScript/OU=JuanScript/CN=JuanScript/emailAddress=info.freenetcafe@gmail.com
+                serial:5D:18:BF:91:02:39:22:F5:89:F2:AA:AF:20:B3:46:CE:2A:D5:AF:0A
+            X509v3 Extended Key Usage: 
+                TLS Web Server Authentication
+            X509v3 Key Usage: 
+                Digital Signature, Key Encipherment
+            X509v3 Subject Alternative Name: 
+                DNS:IZPH-VPN
+    Signature Algorithm: sha256WithRSAEncryption
+    Signature Value:
+        1d:cc:83:b6:b4:d4:7a:68:5d:95:87:a2:b0:79:8c:b9:40:e2:
+        3c:36:8b:08:4f:cc:79:63:32:6d:d8:d6:f5:e0:83:41:14:06:
+        f4:8b:7a:0e:61:c5:0a:5b:3b:88:67:01:f2:0c:19:d6:4e:48:
+        72:d3:99:6e:61:12:3a:61:45:43:94:c3:bd:2a:1f:c5:83:e1:
+        8e:1f:03:1a:97:a9:5a:f3:f7:ec:98:4f:fa:74:c1:f5:58:e3:
+        3f:83:d3:81:4c:af:cd:2e:46:b7:56:b1:b5:70:31:5b:f3:72:
+        9b:4c:b5:78:8a:d8:1f:4c:85:46:aa:5b:66:31:37:da:1b:78:
+        61:4d
+-----BEGIN CERTIFICATE-----
+MIID8zCCA1ygAwIBAgIQHcWeYaBV+rssCtjYfYk8vDANBgkqhkiG9w0BAQsFADCB
+ljELMAkGA1UEBhMCUEgxDDAKBgNVBAgMA05DUjEPMA0GA1UEBwwGTWFuaWxhMRMw
+EQYDVQQKDApKdWFuU2NyaXB0MRMwEQYDVQQLDApKdWFuU2NyaXB0MRMwEQYDVQQD
+DApKdWFuU2NyaXB0MSkwJwYJKoZIhvcNAQkBFhppbmZvLmZyZWVuZXRjYWZlQGdt
+YWlsLmNvbTAgFw0yNDA0MjQwNTM0MTRaGA8yMDUxMDkwOTA1MzQxNFowgZQxCzAJ
+BgNVBAYTAlBIMQwwCgYDVQQIDANOQ1IxDzANBgNVBAcMBk1hbmlsYTETMBEGA1UE
+CgwKSnVhblNjcmlwdDETMBEGA1UECwwKSnVhblNjcmlwdDERMA8GA1UEAwwISVpQ
+SC1WUE4xKTAnBgkqhkiG9w0BCQEWGmluZm8uZnJlZW5ldGNhZmVAZ21haWwuY29t
+MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQD4Jm0L2Z2Ymd56jiVTGEpbtIxv
+GuJgB7cA03y/F0SHy6TSRNBykQUXjzJSgkHy1KHF6Rvqxlv1P1lDzHEp2y03wdph
+Vu7fxCjTLlVJXGPnves6+5jw0sBlXAitofvEtl/eS88Lw+66LIhKcfnx1pBapllJ
+/9TP7GlDDztBImhk+wIDAQABo4IBPjCCATowCQYDVR0TBAIwADAdBgNVHQ4EFgQU
+mWZ2Fvw5CloOW0WIKH8hciSnF1UwgdYGA1UdIwSBzjCBy4AUi3mFqH7pk6XyMjbU
+zTPifrtOtNGhgZykgZkwgZYxCzAJBgNVBAYTAlBIMQwwCgYDVQQIDANOQ1IxDzAN
+BgNVBAcMBk1hbmlsYTETMBEGA1UECgwKSnVhblNjcmlwdDETMBEGA1UECwwKSnVh
+blNjcmlwdDETMBEGA1UEAwwKSnVhblNjcmlwdDEpMCcGCSqGSIb3DQEJARYaaW5m
+by5mcmVlbmV0Y2FmZUBnbWFpbC5jb22CFF0Yv5ECOSL1ifKqryCzRs4q1a8KMBMG
+A1UdJQQMMAoGCCsGAQUFBwMBMAsGA1UdDwQEAwIFoDATBgNVHREEDDAKgghJWlBI
+LVZQTjANBgkqhkiG9w0BAQsFAAOBgQAdzIO2tNR6aF2Vh6KweYy5QOI8NosIT8x5
+YzJt2Nb14INBFAb0i3oOYcUKWzuIZwHyDBnWTkhy05luYRI6YUVDlMO9Kh/Fg+GO
+HwMal6la8/fsmE/6dMH1WOM/g9OBTK/NLka3VrG1cDFb83KbTLV4itgfTIVGqltm
+MTfaG3hhTQ==
+-----END CERTIFICATE-----
+Server-crt
+
+cat <<'Server-key' > /etc/openvpn/certificates/IZPH.key
+-----BEGIN PRIVATE KEY-----
+MIICdgIBADANBgkqhkiG9w0BAQEFAASCAmAwggJcAgEAAoGBAPgmbQvZnZiZ3nqO
+JVMYSlu0jG8a4mAHtwDTfL8XRIfLpNJE0HKRBRePMlKCQfLUocXpG+rGW/U/WUPM
+cSnbLTfB2mFW7t/EKNMuVUlcY+e96zr7mPDSwGVcCK2h+8S2X95LzwvD7rosiEpx
++fHWkFqmWUn/1M/saUMPO0EiaGT7AgMBAAECgYAKA9sA0G6Y2xTsk1IUUXWmz9mf
+HlGmmIkdQmvVdoXwiRqE1fwns4ymD8RzKgipWUWSLD9RMWJCuqTKpLSogM0JT7Qe
+rGHPiC2n9LFreoDCJFc7vE4ZgYI5EIIMcjqmWVxjv0X/DYMrrn+9ga9omPjmG8xh
+j1qDpNO6NAwvgPsJoQJBAP5FZdx05ZX4qWnaqXOD26d7yo4XNx/a688+GhvxeIsy
+s1umy4megZOaOeDEo9sfbCgZ5lavWky85RzhJErNLYsCQQD51l+akA2J7GZSbaN/
+jHVI6+YqKMwHg5F7dKJm3Z+ALiAIq0Shd03TWRwj8dEwC33c9D+VyCha60ZzCk6r
+znRRAkBkAYd+nbtusM5xA7+B32qVBOs114umy8PTTumV8/MlTFuewIttJRpxo0cA
+UFbh6Anx+73MektZwzGZmjNb+DbhAkALhi7swz5MoWHq5XHIPWNflLoOMcmPgysf
+xbaEBi8IS5hgrf3BcO5fFFou8kWS8MTCf2W7c/sgjn+2aMBOPnyxAkEAyvY+ubJq
+rC4LeI+xx3f+46wc/Lfs5dKtFm1AIs7HgNEWcEndQ/wfF4sFtpYHd2x1FxiBJ20G
+TyHJ5P3IQeaLog==
+-----END PRIVATE KEY-----
+Server-key
+
+chmod +x /etc/openvpn/certificates/*
+
+mkdir /etc/openvpn/server
+cat <<'VPN1' > /etc/openvpn/server/tcp.conf
+port 1194
+dev tun
+proto tcp
+ca /etc/openvpn/certificates/ca.crt
+cert /etc/openvpn/certificates/IZPH.crt
+key /etc/openvpn/certificates/IZPH.key
+dh none
+plugin /usr/lib/x86_64-linux-gnu/openvpn/plugins/openvpn-plugin-auth-pam.so /etc/pam.d/login
+verify-client-cert none
+username-as-common-name
+duplicate-cn
+#max-clients 200
+server 10.8.0.0 255.255.240.0
+keepalive 5 30
+status /etc/openvpn/tcp_stats.log
+log /etc/openvpn/tcp.log
+verb 3
+persist-key
+persist-tun
+push "redirect-gateway def1 bypass-dhcp"
+push "dhcp-option DNS 1.0.0.1"
+push "dhcp-option DNS 1.1.1.1"
+push "dhcp-option DNS 8.8.4.4"
+push "dhcp-option DNS 8.8.8.8"
+VPN1
+
+cat <<'VPN2' > /etc/openvpn/server/udp.conf
+port 53
+dev tun
+proto udp
+ca /etc/openvpn/certificates/ca.crt
+cert /etc/openvpn/certificates/IZPH.crt
+key /etc/openvpn/certificates/IZPH.key
+dh none
+plugin /usr/lib/openvpn/openvpn-plugin-auth-pam.so /etc/pam.d/login
+verify-client-cert none
+username-as-common-name
+#max-clients 200
+duplicate-cn
+server 10.9.0.0 255.255.240.0
+keepalive 5 30
+status /etc/openvpn/udp_stats.log
+log /etc/openvpn/udp.log
+verb 3
+persist-key
+persist-tun
+push "redirect-gateway def1 bypass-dhcp"
+push "dhcp-option DNS 1.0.0.1"
+push "dhcp-option DNS 1.1.1.1"
+push "dhcp-option DNS 8.8.4.4"
+push "dhcp-option DNS 8.8.8.8"
+VPN2
+
+plugin_file=$(find / -name openvpn-plugin-auth-pam.so 2>/dev/null)
+# Check if file is found
+if [ -z "$plugin_file" ]; then
+    echo "Plugin file not found."
+    exit 1
+fi
+# Replace the line starting with "plugin" in the OpenVPN config file
+sed -i "s|^plugin.*|plugin $plugin_file /etc/pam.d/login|" /etc/openvpn/server/*.conf
+
+echo "Plugin line replaced successfully."
+
+systemctl stop openvpn &>/dev/null
+systemctl disable openvpn &>/dev/null
+systemctl enable openvpn-server@tcp &>/dev/null
+systemctl enable openvpn-server@udp &>/dev/null
+systemctl restart openvpn-server@tcp &>/dev/null
+systemctl restart openvpn-server@udp &>/dev/null
+
+mkdir /etc/openvpn/configs
+
+CA_FILE="/etc/openvpn/certificates/ca.crt"
+OUTPUT_FILE="/etc/openvpn/configs/tcp.ovpn"
+OUTPUT_FILE2="/etc/openvpn/configs/udp.ovpn"
+
+# Fetch contents of files
+ca_content=$(<"$CA_FILE")
+
+# Construct OpenVPN configuration using printf
+printf "client
+dev tun
+persist-tun
+proto tcp
+remote $(wget -4qO- http://ipinfo.io/ip) 1194
+verb 3
+ping-restart 0
+auth none
+auth-nocache
+cipher none
+setenv CLIENT_CERT 0
+auth-user-pass
+<ca>
+%s
+</ca>\n" "$ca_content" > "$OUTPUT_FILE"
+
+printf "client
+dev tun
+persist-tun
+proto udp
+remote $(wget -4qO- http://ipinfo.io/ip) 53
+verb 3
+ping-restart 0
+auth none
+auth-nocache
+cipher none
+setenv CLIENT_CERT 0
+auth-user-pass
+<ca>
+%s
+</ca>\n" "$ca_content" > "$OUTPUT_FILE2"
+
+apt install jq -y
+# Define your Cloudflare account details
+API_ENDPOINT="https://api.cloudflare.com/client/v4/zones"
+AUTH_EMAIL="jericoanugal12@gmail.com"
+AUTH_KEY="d80463843e8bd82b45aa12d70dfde27b0a0b9"
+ZONE_ID="74b046215c86d1e63b719400930ec926"
+DOMAIN_NAME="jericoo.site"
+
+# Get the public IP address of the current machine
+IP_ADDRESS=$(wget -4qO- http://ipinfo.io/ip)
+
+# Generate a random subdomain (10 characters long in this example)
+SUBDOMAIN=$(cat /dev/urandom | tr -dc 'a-z' | fold -w 5 | head -n 1)
+
+# Define the A record
+A_RECORD=$(cat <<EOF
+{
+  "type": "A",
+  "name": "${SUBDOMAIN}.${DOMAIN_NAME}",
+  "content": "${IP_ADDRESS}",
+  "ttl": 1,
+  "proxied": false
+}
+EOF
+)
+
+# Send POST request to Cloudflare API to add A record
+A_RESPONSE=$(curl -s -X POST "${API_ENDPOINT}/${ZONE_ID}/dns_records" \
+     -H "X-Auth-Email: ${AUTH_EMAIL}" \
+     -H "X-Auth-Key: ${AUTH_KEY}" \
+     -H "Content-Type: application/json" \
+     --data "${A_RECORD}")
+
+# Parse the A record response
+A_SUCCESS=$(echo ${A_RESPONSE} | jq -r '.success')
+
+# If the A record was successfully added, define the NS record
+if [ "${A_SUCCESS}" == "true" ]; then
+    # Define the NS record pointing to the A record
+    NS_RECORD=$(cat <<EOF
+    {
+      "type": "NS",
+      "name": "ns.${SUBDOMAIN}.${DOMAIN_NAME}",
+      "content": "${SUBDOMAIN}.${DOMAIN_NAME}",
+      "ttl": 1,
+      "proxied": false
+    }
+EOF
+    )
+
+    # Send POST request to Cloudflare API to add NS record
+    NS_RESPONSE=$(curl -s -X POST "${API_ENDPOINT}/${ZONE_ID}/dns_records" \
+         -H "X-Auth-Email: ${AUTH_EMAIL}" \
+         -H "X-Auth-Key: ${AUTH_KEY}" \
+         -H "Content-Type: application/json" \
+         --data "${NS_RECORD}")
+
+    # Parse the NS record response
+    NS_SUCCESS=$(echo ${NS_RESPONSE} | jq -r '.success')
+
+    # If the NS record was successfully added, echo and write to files
+    if [ "${NS_SUCCESS}" == "true" ]; then
+        mkdir /etc/dnsinfo
+        echo "${SUBDOMAIN}.${DOMAIN_NAME}" > /etc/dnsinfo/a-name
+        wget -qO /etc/dnsinfo/dnstt-server https://github.com/yakult13/parte/raw/main/dnstt-server
+        chmod +x /etc/dnsinfo/dnstt-server
+        echo "102ba9b614ef273c96481f727e862b49cb39603be4917b84b0889f3ab96acee8" > /etc/dnsinfo/server.key
+        echo "8772bac0f2f395a6897da6845bdd21c432e07572dcc55fef5091f08c896b833d" > /etc/dnsinfo/server.pub
+        echo "ns.${SUBDOMAIN}.${DOMAIN_NAME}" > /etc/dnsinfo/nameserver
+        echo "Both A and NS records successfully added."
+        echo "[Unit]
+Description=DNSTT Server
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=/etc/dnsinfo
+ExecStart=/etc/dnsinfo/dnstt-server -udp :5300 -privkey-file server.key ns.${SUBDOMAIN}.${DOMAIN_NAME} 127.0.0.1:22
+Restart=on-failure
+RestartSec=5s
+ExecReload=/bin/kill -HUP \$MAINPID
+ExecStop=/bin/kill -s QUIT \$MAINPID
+StandardOutput=file:/etc/dnsinfo/status.log
+
+[Install]
+WantedBy=multi-user.target
+" > /lib/systemd/system/dnstt.service
+systemctl daemon-reload
+systemctl enable dnstt &>/dev/null
+systemctl restart dnstt &>/dev/null
+    else
+        echo "${SUBDOMAIN}.${DOMAIN_NAME}" > /etc/dnsinfo/a-name
+        echo "A record added successfully, but NS record failed."
+    fi
+else
+    echo "Failed to add A record."
+fi
+
+PNET="$(ip -4 route ls | grep default | grep -Po '(?<=dev )(\S+)' | head -1)"
+apt install iptables-persistent -yf &>/dev/null
+systemctl -q enable netfilter-persistent
+iptables -I INPUT -p udp --dport 5300 -j ACCEPT
+iptables -t nat -I PREROUTING -i eth0 -p udp --dport 53 -j REDIRECT --to-ports 5300
+iptables -A INPUT -s 0.0.0.0/0 -p tcp -m multiport --dport 1:65535 -j ACCEPT
+iptables -A INPUT -s 0.0.0.0/0 -p udp -m multiport --dport 1:65535 -j ACCEPT
+iptables -I FORWARD -s 10.8.0.0/16 -j ACCEPT
+iptables -t nat -A POSTROUTING -s 10.8.0.0/16 -o ${PNET} -j MASQUERADE
+iptables -I FORWARD -s 10.9.0.0/16 -j ACCEPT
+iptables -t nat -A POSTROUTING -s 10.9.0.0/16 -o ${PNET} -j MASQUERADE
+iptables -A INPUT -m string --algo bm --string "BitTorrent" -j REJECT
+iptables -A INPUT -m string --algo bm --string "BitTorrent protocol" -j REJECT
+iptables -A INPUT -m string --algo bm --string ".torrent" -j REJECT
+iptables -A INPUT -m string --algo bm --string "torrent" -j REJECT
+iptables -A INPUT -m string --string "BitTorrent" --algo kmp -j REJECT
+iptables -A INPUT -m string --string "BitTorrent protocol" --algo kmp -j REJECT
+iptables -A INPUT -m string --string "bittorrent-announce" --algo kmp -j REJECT
+iptables -A FORWARD -m string --algo bm --string "BitTorrent" -j REJECT
+iptables -A FORWARD -m string --algo bm --string "BitTorrent protocol" -j REJECT
+iptables -A FORWARD -m string --algo bm --string ".torrent" -j REJECT
+iptables -A FORWARD -m string --algo bm --string "torrent" -j REJECT
+iptables -A FORWARD -m string --string "BitTorrent" --algo kmp -j REJECT
+iptables -A FORWARD -m string --string "BitTorrent protocol" --algo kmp -j REJECT
+iptables -A FORWARD -m string --string "bittorrent-announce" --algo kmp -j REJECT
+iptables -A OUTPUT -m string --algo bm --string "BitTorrent" -j REJECT
+iptables -A OUTPUT -m string --algo bm --string "BitTorrent protocol" -j REJECT
+iptables -A OUTPUT -m string --algo bm --string ".torrent" -j REJECT
+iptables -A OUTPUT -m string --algo bm --string "torrent" -j REJECT
+iptables -A OUTPUT -m string --string "BitTorrent" --algo kmp -j REJECT
+iptables -A OUTPUT -m string --string "BitTorrent protocol" --algo kmp -j REJECT
+iptables -A OUTPUT -m string --string "bittorrent-announce" --algo kmp -j REJECT
+iptables-save > /etc/iptables/rules.v4
+systemctl -q restart netfilter-persistent
+
+mkdir -p /etc/ws
+curl -sk -H "Authorization: token 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" -H "Accept: application/vnd.github.v3.raw" "https://raw.githubusercontent.com/kiranoble/juanscript_izph/main/websocket" -o /etc/ws/websocket
+chmod +x /etc/ws/websocket
+
+echo '[Unit]
+Description=Websocket Proxy
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=/etc/ws
+ExecStart=/etc/ws/websocket
+Restart=on-failure
+RestartSec=5s
+Environment=PATH=/usr/bin:/usr/local/bin
+KillMode=process
+StandardOutput=file:/etc/ws/status.log
+
+[Install]
+WantedBy=multi-user.target
+' > /lib/systemd/system/websocket.service
+systemctl daemon-reload
+systemctl enable websocket &>/dev/null
+systemctl restart websocket &>/dev/null
+
+
+echo 'clear
+screenfetch -p -A Debian
+set +o history && history -cw > /dev/null 2>&1
+rm -rf /{var,run}/log/{journal/*,lastlog}; history -w -c; rm -f ~/.bash_history
+if systemctl is-active --quiet pythonproxy.service; then
+    echo -e "WS: On"
+else
+    echo -e "WS: Off"
+fi
+if systemctl is-active --quiet dnstt.service; then
+    echo -e "SDNS: On"
+else
+    echo -e "SDNS: Off"
+fi
+echo -e "NS: $(cat /etc/dnsinfo/nameserver)"
+echo -e "key: $(cat /etc/dnsinfo/server.pub)"
+echo -e "OpenVPN TCP Live: $(( $(grep -c "CLIENT_LIST" /etc/openvpn/tcp_stats.log) - 1 ))"
+echo -e "OpenVPN UDP Live: $(( $(grep -c "CLIENT_LIST" /etc/openvpn/udp_stats.log) - 1 ))"' > /etc/profile.d/juan.sh
+
+chmod +x /etc/profile.d/juan.sh
+
+apt install stunnel -y
+rm -rf /etc/stunnel/*
+
+echo 'pid = /run/stunnel.pid
+cert = /etc/stunnel/stunnel.pem
+client = no
+socket = a:SO_REUSEADDR=1
+socket = l:TCP_NODELAY=1
+socket = r:TCP_NODELAY=1
+output = /etc/stunnel/stunnel-users.log
+
+[openvpn]
+accept = 443
+connect = 127.0.0.1:1194' > /etc/stunnel/stunnel.conf
+
+echo 'ENABLED=1
+FILES="/etc/stunnel/*.conf"
+OPTIONS=""
+PPP_RESTART=0
+RLIMITS=""' > /etc/default/stunnel4
+
+openssl req -new -newkey rsa:2048 -days 365 -nodes -x509 -sha256 -subj '/C=PH/ST=NCR/L=Manila/O=JuanScript/OU=JuanScript/CN=IZPH VPN' -keyout /etc/stunnel/stunnel.pem -out /etc/stunnel/stunnel.pem &>/dev/null
+
+systemctl enable stunnel4 &>/dev/null
+systemctl restart stunnel4 &>/dev/null
+
+echo '* hard - core 0
+* soft - core 0
+* hard nofile unlimited
+* soft nofile unlimited
+* hard nproc unlimited
+* soft nproc unlimited' > /etc/security/limits.conf
+
+echo '/bin/false' >> /etc/shells
+echo '/usr/sbin/nologin' >> /etc/shells
+timedatectl set-timezone Asia/Manila
+echo "0 8 * * * root /sbin/reboot" | tee -a /etc/cron.d/reboot_at_8am 
+
+echo "[Unit]
+Description=Timer for Check Script Service
+
+[Timer]
+OnUnitActiveSec=15s
+Unit=check.service
+
+[Install]
+WantedBy=timers.target" > /etc/systemd/system/check.timer
+
+echo "[Unit]
+Description=Check Script Service
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=/bin/bash /etc/python3/check.sh
+
+[Install]
+WantedBy=multi-user.target
+" > /etc/systemd/system/check.service
+systemctl daemon-reload
+systemctl enable check.service
+systemctl enable check.timer
+systemctl restart check.service
+systemctl restart check.timer
+rm -rf /root/*
+apt autoremove -y
+reboot
