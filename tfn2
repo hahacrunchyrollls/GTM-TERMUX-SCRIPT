@@ -247,8 +247,8 @@ check_dns() {
     for ((i=0; i<"${#HOSTS[*]}"; i++)); do
         for R in "${NS[@]}"; do
             T="${HOSTS[$i]}"
-            # Get average ping in ms (3 packets)
-            PING_MS_RAW=$(ping -c 3 -W 1 "$T" 2>/dev/null | awk -F'/' '/^rtt/ {printf "%.0f", $5}')
+            # Faster ping: only 1 packet, 0.5s timeout
+            PING_MS_RAW=$(ping -c 1 -W 1 "$T" 2>/dev/null | awk -F'/' '/^rtt/ {printf "%.0f", $5}')
             if [ -z "$PING_MS_RAW" ]; then
                 PING_MS="timeout"
                 PING_COLOR="${RED}"
@@ -263,7 +263,8 @@ check_dns() {
                 PING_MS="${PING_MS_RAW} ms"
             fi
 
-            if [ "$PING_MS" != "timeout" ] && timeout -k 3 3 ${_DIG} @"$T" "$R" >/dev/null 2>&1; then
+            # Use timeout for dig, but lower the timeout to 1s
+            if [ "$PING_MS" != "timeout" ] && timeout -k 2 1 ${_DIG} @"$T" "$R" >/dev/null 2>&1; then
                 STATUS="${GREEN}✔${NC}"
             else
                 STATUS="${RED}✘${NC}"
