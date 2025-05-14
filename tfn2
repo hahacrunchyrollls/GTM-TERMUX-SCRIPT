@@ -248,14 +248,14 @@ check_dns() {
         for R in "${NS[@]}"; do
             T="${HOSTS[$i]}"
             # Get average ping in ms (3 packets)
-            PING_MS_RAW=$(ping -c 3 -W 1 "$T" 2>/dev/null | awk -F'/' '/^rtt/ {printf "%.1f", $5}')
+            PING_MS_RAW=$(ping -c 3 -W 1 "$T" 2>/dev/null | awk -F'/' '/^rtt/ {printf "%.0f", $5}')
             if [ -z "$PING_MS_RAW" ]; then
                 PING_MS="timeout"
                 PING_COLOR="${RED}"
             else
-                if (( $(echo "$PING_MS_RAW <= 60" | bc -l) )); then
+                if [ "$PING_MS_RAW" -le 60 ]; then
                     PING_COLOR="${GREEN}"
-                elif (( $(echo "$PING_MS_RAW <= 150" | bc -l) )); then
+                elif [ "$PING_MS_RAW" -le 150 ]; then
                     PING_COLOR="${YELLOW}"
                 else
                     PING_COLOR="${RED}"
