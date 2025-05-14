@@ -115,7 +115,11 @@ dns_menu() {
                     fi
                 fi
                 ;;
-            3)  log "\n${CYAN}Current DNS entries:${NC}"
+            3)  nano "$HOSTS_FILE"
+                load_config
+                log "${GREEN}DNS list edited.${NC}"
+                ;;
+            4)  log "\n${CYAN}Current DNS entries:${NC}"
                 if [ ${#HOSTS[@]} -eq 0 ]; then
                     log "${YELLOW}No DNS configured${NC}"
                 else
@@ -124,10 +128,6 @@ dns_menu() {
                     done
                 fi
                 read -n 1 -s -r -p "Press any key to continue..."
-                ;;
-            4)  nano "$HOSTS_FILE"
-                load_config
-                log "${GREEN}DNS list edited.${NC}"
                 ;;
             5)  HOSTS=()
                 > "$HOSTS_FILE"
@@ -149,8 +149,8 @@ nameserver_menu() {
         log "${GREEN}╔══════════════════════════════════════════════╗${NC}"
         log "${GREEN} 1. Add NS             ${NC}"
         log "${GREEN} 2. Remove NS          ${NC}"
-        log "${GREEN} 3. View Current NS    ${NC}"
-        log "${GREEN} 4. Edit NS in nano    ${NC}"
+        log "${GREEN} 3. Edit NS in nano    ${NC}"
+        log "${GREEN} 4. View Current NS    ${NC}"
         log "${GREEN} 5. Delete ALL NS      ${NC}"
         log "${GREEN} 0. Back to Main Menu  ${NC}"
         log "${GREEN}╚══════════════════════════════════════════════╝${NC}"
@@ -186,7 +186,11 @@ nameserver_menu() {
                     fi
                 fi
                 ;;
-            3)  log "\n${CYAN}Current nameservers:${NC}"
+            3)  nano "$NS_FILE"
+                load_config
+                log "${GREEN}Nameserver list edited.${NC}"
+                ;;
+            4)  log "\n${CYAN}Current nameservers:${NC}"
                 if [ ${#NS[@]} -eq 0 ]; then
                     log "${YELLOW}No nameservers configured${NC}"
                 else
@@ -195,10 +199,6 @@ nameserver_menu() {
                     done
                 fi
                 read -n 1 -s -r -p "Press any key to continue..."
-                ;;
-            4)  nano "$NS_FILE"
-                load_config
-                log "${GREEN}Nameserver list edited.${NC}"
                 ;;
             5)  NS=()
                 > "$NS_FILE"
