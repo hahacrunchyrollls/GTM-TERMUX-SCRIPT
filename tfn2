@@ -1,6 +1,6 @@
 #!/bin/bash
-# TFN VPN DNS Script
-# Version 3.0
+# PHC_Jerico Termux Script
+# Version 3.1
 
 # Colors
 RED='\033[0;31m'
@@ -28,22 +28,24 @@ log() {
     echo -e "$1" | tee -a "$LOG_FILE"
 }
 
+# Cleanup function
+cleanup() {
+    log "\n${YELLOW}Cleaning up and exiting...${NC}"
+    exit 1
+}
+
 # Set up trap for cleanup
 trap cleanup 2 15
 
 # Ensure data directory exists
 mkdir -p "$TFN_DIR"
 
-# Initial setup
-check_dig || exit 1
-load_config
-
 # Function to clear screen and show banner
 show_banner() {
     clear
     log "${GREEN}╔══════════════════════════════════════════════╗${NC}"
-    log "${GREEN}           PHC_Jerico Termux Script                    ${NC}"
-    log "${GREEN}               Version: ${VER}                     ${NC}"
+    log "${GREEN}           PHC_Jerico Termux Script           ${NC}"
+    log "${GREEN}               Version: ${VER}                ${NC}"
     log "${GREEN}╚══════════════════════════════════════════════╝${NC}"
 }
 
@@ -308,15 +310,6 @@ main_menu() {
         esac
     done
 }
-
-# Cleanup function
-cleanup() {
-    log "\n${YELLOW}Cleaning up and exiting...${NC}"
-    exit 1
-}
-
-# Set up trap for cleanup
-trap cleanup 2 15
 
 # Initial setup
 check_dig || exit 1
