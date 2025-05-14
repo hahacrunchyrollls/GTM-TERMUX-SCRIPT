@@ -299,6 +299,34 @@ start_digging() {
     done
 }
 
+update_script() {
+    local GITHUB_URL="https://github.com/hahacrunchyrollls/GTM-TERMUX-SCRIPT/raw/refs/heads/main/tfn"
+    local SCRIPT_PATH="$0"
+    local REMOTE_VER
+
+    log "${YELLOW}Checking for updates...${NC}"
+    REMOTE_VER=$(curl -fsSL "$GITHUB_URL" | grep -m1 '^# Version' | awk '{print $3}')
+    if [ -z "$REMOTE_VER" ]; then
+        log "${RED}Could not fetch remote version.${NC}"
+        return
+    fi
+
+    if [ "$REMOTE_VER" != "$VER" ]; then
+        log "${YELLOW}New version found: $REMOTE_VER. Updating...${NC}"
+        curl -fsSL "$GITHUB_URL" -o "${SCRIPT_PATH}.new"
+        if [ $? -eq 0 ]; then
+            mv "${SCRIPT_PATH}.new" "$SCRIPT_PATH"
+            chmod +x "$SCRIPT_PATH"
+            log "${GREEN}Script updated to version $REMOTE_VER! Please restart the script.${NC}"
+            exit 0
+        else
+            log "${RED}Failed to download the update.${NC}"
+        fi
+    else
+        log "${GREEN}You are already using the latest version ($VER).${NC}"
+    fi
+}
+
 # Main menu function
 main_menu() {
     local choice
@@ -309,6 +337,7 @@ main_menu() {
         log "${GREEN} 2. NS Management       ${NC}"
         log "${GREEN} 3. Set Loop Delay      ${NC}"
         log "${GREEN} 4. Start Digging       ${NC}"
+        log "${GREEN} 5. Update Script       ${NC}"
         log "${GREEN} 0. Exit                ${NC}"
         log "${GREEN}╚══════════════════════════════════════════════╝${NC}"
         log ""
@@ -323,6 +352,7 @@ main_menu() {
             2) nameserver_menu ;;
             3) set_loop_delay ;;
             4) start_digging ;;
+            5) update_script ;;
             0) log "\n${GREEN}Thank you for using TFN VPN DNS Script!${NC}"; exit 0 ;;
             *) log "${RED}Invalid option. Please try again.${NC}" ;;
         esac
