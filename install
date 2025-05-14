@@ -247,20 +247,21 @@ check_dns() {
     for ((i=0; i<"${#HOSTS[*]}"; i++)); do
         for R in "${NS[@]}"; do
             T="${HOSTS[$i]}"
-            # Ping the nameserver (resolver) instead of the DNS
-            PING_MS_RAW=$(ping -c 1 -W 1 "$R" 2>/dev/null | awk -F'/' '/^rtt/ {printf "%.0f", $5}')
+            # Send 4 pings and get the average RTT
+            PING_MS_RAW=$(ping -c 4 -W 2 "$R" 2>/dev/null | awk -F'/' '/^rtt/ {print $5}')
             if [ -z "$PING_MS_RAW" ]; then
                 PING_MS="timeout"
                 PING_COLOR="${RED}"
             else
-                if [ "$PING_MS_RAW" -le 60 ]; then
+                PING_MS_RAW_INT=$(printf "%.0f" "$PING_MS_RAW")
+                if [ "$PING_MS_RAW_INT" -le 60 ]; then
                     PING_COLOR="${GREEN}"
-                elif [ "$PING_MS_RAW" -le 150 ]; then
+                elif [ "$PING_MS_RAW_INT" -le 150 ]; then
                     PING_COLOR="${YELLOW}"
                 else
                     PING_COLOR="${RED}"
                 fi
-                PING_MS="${PING_MS_RAW} ms"
+                PING_MS="${PING_MS_RAW_INT} ms"
             fi
 
             # Use timeout for dig, but lower the timeout to 1s
