@@ -11,5 +11,5 @@ pkg install wget && rm -rf install; wget https://raw.githubusercontent.com/hahac
 
 ## TO OPEN AGAIN TYPE:
 ```
-tfn
+menu
 ```
