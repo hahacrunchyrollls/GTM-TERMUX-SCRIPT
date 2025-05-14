@@ -247,30 +247,12 @@ check_dns() {
     for ((i=0; i<"${#HOSTS[*]}"; i++)); do
         for R in "${NS[@]}"; do
             T="${HOSTS[$i]}"
-            # Faster ping: only 1 packet, 0.5s timeout
-            PING_MS_RAW=$(ping -c 1 -W 1 "$T" 2>/dev/null | awk -F'/' '/^rtt/ {printf "%.0f", $5}')
-            if [ -z "$PING_MS_RAW" ]; then
-                PING_MS="timeout"
-                PING_COLOR="${RED}"
-            else
-                if [ "$PING_MS_RAW" -le 60 ]; then
-                    PING_COLOR="${GREEN}"
-                elif [ "$PING_MS_RAW" -le 150 ]; then
-                    PING_COLOR="${YELLOW}"
-                else
-                    PING_COLOR="${RED}"
-                fi
-                PING_MS="${PING_MS_RAW} ms"
-            fi
-
-            # Use timeout for dig, but lower the timeout to 1s
-            if [ "$PING_MS" != "timeout" ] && timeout -k 2 1 ${_DIG} @"$T" "$R" >/dev/null 2>&1; then
+            if timeout -k 3 3 ${_DIG} @${T} ${R} >/dev/null 2>&1; then
                 STATUS="${GREEN}✔${NC}"
             else
                 STATUS="${RED}✘${NC}"
             fi
-
-            log "NS: ${GREEN}${R}${NC}\nDNS: ${CYAN}${T}${NC}\nSTATUS: ${STATUS}\nPING: ${PING_COLOR}${PING_MS}${NC}\nCount: ${DIG_COUNT}"
+            log "NS: ${GREEN}${R}${NC}\nDNS: ${CYAN}${T}${NC}\nSTATUS: ${STATUS}\nCount: ${DIG_COUNT}"
             DIG_COUNT=$((DIG_COUNT + 1))
         done
     done
