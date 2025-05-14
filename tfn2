@@ -1,6 +1,6 @@
 #!/bin/bash
 # PHC_Jerico Termux Script
-# Version 3.1
+# Version 3.2
 
 # Colors
 RED='\033[0;31m'
@@ -12,7 +12,7 @@ CYAN='\033[0;36m'
 NC='\033[0m' # No Color
 
 # Global variables
-VER="3.1"
+VER="3.2"
 DIG_COUNT=0
 NS=()
 HOSTS=()
